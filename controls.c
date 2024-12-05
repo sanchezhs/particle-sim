@@ -279,6 +279,8 @@ int main(void)
     InitWindow(BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT, "Panel de Control");
     SetTargetFPS(60);
 
+    bool showConfigPanel = false;
+
     // Obtener resolución actual del monitor
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
@@ -352,38 +354,57 @@ int main(void)
 
     while (!WindowShouldClose())
     {
-        ClearBackground(RAYWHITE);
-
         GuiSetStyle(DEFAULT, TEXT_SIZE, scaledFontSize);
+        if (showConfigPanel)
+        {
+            ClearBackground(RAYWHITE);
 
-        Rectangle tabBarBounds = {xOffset, yOffset, 760, 40};
-        int closedTab = GuiTabBar(tabBarBounds, tabTexts, MAX_TABS, &activeTab);
 
-        if (closedTab >= 0)
-        {
-            TraceLog(LOG_INFO, "Pestaña cerrada: %d", closedTab);
-        }
+            Rectangle tabBarBounds = {xOffset, yOffset, 760, 40};
+            int closedTab = GuiTabBar(tabBarBounds, tabTexts, MAX_TABS, &activeTab);
 
-        // General
-        if (activeTab == 0)
-        {
-            generalTab(&maxParticles, &initialCapacity, &seed, &lifetime, &fragmentParticlesLive, &virtualParticles);
+            if (closedTab >= 0)
+            {
+                TraceLog(LOG_INFO, "Pestaña cerrada: %d", closedTab);
+            }
+
+            // General
+            if (activeTab == 0)
+            {
+                generalTab(&maxParticles, &initialCapacity, &seed, &lifetime, &fragmentParticlesLive, &virtualParticles);
+            }
+            else if (activeTab == 1)
+            {
+                particlesTab(&minParticleLifeTime, &maxParticleLifeTime, &minParticleSpeed, &maxParticleSpeed, &minParticleMass, &maxParticleMass, &trailLength);
+            }
+            else if (activeTab == 2)
+            {
+                explosionTab(&minExplosionParticles, &maxExplosionParticles);
+            }
+            else if (activeTab == 3)
+            {
+                virtualParticlesTab(&minVirtualParticleSpeed, &maxVirtualParticleSpeed, &minVirtualParticleLifeTime, &maxVirtualParticleLifeTime, &minTimeBetweenVirtualPairs);
+            }
+            else if (activeTab == 4)
+            {
+                physicsTab(&g, &gUniversal, &maxGravityDistance, &kElectric, &maxForce, &gravityType, &electricForce, &dropDownOpen);
+            }
+
+            if (GuiButton((Rectangle){BASE_SCREEN_WIDTH - 150, BASE_SCREEN_HEIGHT - 50, 130, 30}, "Simulation"))
+            {
+                showConfigPanel = false;
+            }
         }
-        else if (activeTab == 1)
+        else
         {
-            particlesTab(&minParticleLifeTime, &maxParticleLifeTime, &minParticleSpeed, &maxParticleSpeed, &minParticleMass, &maxParticleMass, &trailLength);
-        }
-        else if (activeTab == 2)
-        {
-            explosionTab(&minExplosionParticles, &maxExplosionParticles);
-        }
-        else if (activeTab == 3)
-        {
-            virtualParticlesTab(&minVirtualParticleSpeed, &maxVirtualParticleSpeed, &minVirtualParticleLifeTime, &maxVirtualParticleLifeTime, &minTimeBetweenVirtualPairs);
-        }
-        else if (activeTab == 4)
-        {
-            physicsTab(&g, &gUniversal, &maxGravityDistance, &kElectric, &maxForce, &gravityType, &electricForce, &dropDownOpen);
+            ClearBackground(BLACK);
+
+            // TODO: Draw simulation here
+
+            if (GuiButton((Rectangle){BASE_SCREEN_WIDTH - 150, BASE_SCREEN_HEIGHT - 50, 130, 30}, "Settings"))
+            {
+                showConfigPanel = true;
+            }
         }
 
         EndDrawing();
