@@ -1,24 +1,10 @@
-#include "raylib.h"
+#include "simulation.h"
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-#define BASE_SCREEN_WIDTH 800
-#define BASE_SCREEN_HEIGHT 800
-
 #define MAX_TABS 5
-
 #define WIDTH 800
 #define HEIGHT 800
-
-typedef enum GravityType
-{
-    GRAVITY_CENTER,
-    GRAVITY_DOWN,
-    GRAVITY_UP,
-    GRAVITY_LEFT,
-    GRAVITY_RIGHT,
-    GRAVITY_NONE
-} GravityType;
 
 void generalTab(int *maxParticles, int *initialCapacity, int *seed, bool *lifetime, bool *fragmentParticlesLive, bool *virtualParticles)
 {
@@ -212,7 +198,7 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int xOffset = 40;
     int yOffset = 80;
 
-    // Gravedad estándar (G)
+    // Standard gravity (G)
     yOffset += 40;
     float gTemp = *g;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Gravitational\nAcceleration");
@@ -221,7 +207,7 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int gTempInt = (int)*g;
     GuiValueBox((Rectangle){xOffset + 250, yOffset, 300, 20}, NULL, &gTempInt, 1, 500, false);
 
-    // Constante gravitacional universal (G_UNIVERSAL)
+    // Universal Gravitational Constant (G_UNIVERSAL)
     yOffset += 40;
     float gUniversalTemp = *gUniversal;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Universal\nGravitational Constant");
@@ -230,7 +216,7 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int gUniversalTempInt = (int)(*gUniversal);
     GuiValueBox((Rectangle){xOffset + 250, yOffset, 300, 20}, NULL, &gUniversalTempInt, -100, 1000, false);
 
-    // Distancia máxima de gravedad
+    // Maximum gravity distance
     yOffset += 40;
     float maxGravityDistanceTemp = *maxGravityDistance;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Max Gravity Distance:");
@@ -239,7 +225,7 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int maxGravityDistanceTempInt = (int)(*maxGravityDistance);
     GuiValueBox((Rectangle){xOffset + 250, yOffset, 300, 20}, NULL, &maxGravityDistanceTempInt, 1, 1000, false);
 
-    // Constante de fuerza eléctrica (K_ELECTRIC)
+    // Eletric force constant (K_ELECTRIC)
     yOffset += 40;
     float kElectricTemp = *kElectric;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Electrical Constant");
@@ -248,12 +234,12 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int kElectricTempInt = (int)(*kElectric);
     GuiValueBox((Rectangle){xOffset + 250, yOffset, 300, 20}, NULL, &kElectricTempInt, 1, 1000, false);
 
-    // Activar/desactivar fuerza eléctrica
+    // Enable/disable electric force
     yOffset += 40;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Enable Electric Force:");
     GuiCheckBox((Rectangle){xOffset + 250, yOffset, 20, 20}, "Electric Force", electricForce);
 
-    // Fuerza máxima permitida (MAX_FORCE)
+    // Maximum force allowed (MAX_FORCE)
     yOffset += 40;
     float maxForceTemp = *maxForce;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Max Force Allowed");
@@ -262,12 +248,11 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
     int maxForceTempInt = (int)(*maxForce);
     GuiValueBox((Rectangle){xOffset + 250, yOffset, 300, 20}, NULL, &maxForceTempInt, 1, 1000, false);
 
-    // Tipo de gravedad
+    // gravity Type
     yOffset += 40;
     GuiLabel((Rectangle){xOffset, yOffset, 200, 20}, "Gravity Type:");
-    const char *gravityOptions[] = {"Center", "Down", "Up", "Left", "Right", "None"};
     if (GuiDropdownBox((Rectangle){xOffset + 250, yOffset, 300, 20},
-                       "Center;Down;Up;Left;Right;None", (int *)gravityType, *dropDownOpen))
+                       "None;Center;Down;Up;Left;Right", (int *)gravityType, *dropDownOpen))
     {
         *dropDownOpen = !*dropDownOpen;
     }
@@ -275,141 +260,181 @@ void physicsTab(float *g, float *gUniversal, float *maxGravityDistance, float *k
 
 int main(void)
 {
-    // Inicializar ventana
-    InitWindow(BASE_SCREEN_WIDTH, BASE_SCREEN_HEIGHT, "Panel de Control");
+    InitWindow(WIDTH, HEIGHT, "Particle Simulation");
     SetTargetFPS(60);
 
     bool showConfigPanel = false;
+    bool paused = false;
 
-    // Obtener resolución actual del monitor
     int screenWidth = GetScreenWidth();
-    int screenHeight = GetScreenHeight();
+    float scaleFactor = (float)screenWidth / WIDTH;
+    int baseFontSize = 20;
+    int scaledFontSize = (int)(baseFontSize * scaleFactor);
 
-    // Calcular factor de escala basado en la resolución
-    float scaleFactor = (float)screenWidth / BASE_SCREEN_WIDTH;
+    int activeTab = 0;
 
-    // Escalar tamaño de fuente
-    int baseFontSize = 20;                                  // Tamaño base de la fuente
-    int scaledFontSize = (int)(baseFontSize * scaleFactor); // Tamaño escalado de la fuente
+    SimulationConfig config = {
+        // GENERAL
+        .maxParticles = 100,
+        .initialCapacity = 10,
+        .lifetime = false,
+        .fragmentParticlesLive = false,
+        .virtualParticles = false,
 
-    float scaleFactorX = (float)screenWidth / BASE_SCREEN_WIDTH;
-    float scaleFactorY = (float)screenHeight / BASE_SCREEN_HEIGHT;
+        // PARTICLES
+        .minParticleLifeTime = 10,
+        .maxParticleLifeTime = 50,
+        .minParticleSpeed = 10,
+        .maxParticleSpeed = 20,
+        .minParticleMass = 5,
+        .maxParticleMass = 10,
+        .trailLength = 5,
 
-    // GENERAL TAB
-    int activeTab = 0;         // Pestaña activa por defecto
-    int maxParticles = 1000;   // Número máximo de partículas
-    int initialCapacity = 500; // Capacidad inicial
-    bool lifetime = false;     // Opciones booleanas
-    bool fragmentParticlesLive = false;
-    bool virtualParticles = false;
+        // EXPLOSION
+        .minExplosionParticles = 0,
+        .maxExplosionParticles = 5,
 
-    // PARTICLES TAB
-    float minParticleLifeTime = 10;
-    float maxParticleLifeTime = 50;
-    float minParticleSpeed = 10;
-    float maxParticleSpeed = 20;
-    float minParticleMass = 5;
-    float maxParticleMass = 10;
-    float trailLength = 5;
+        // VIRTUAL PARTICLE
+        .minVirtualParticleSpeed = 5,
+        .maxVirtualParticleSpeed = 25,
+        .minVirtualParticleLifeTime = 5,
+        .maxVirtualParticleLifeTime = 25,
+        .minTimeBetweenVirtualPairs = 5.0f,
 
-    // EXPLOSION TAB
-    int minExplosionParticles = 0;
-    int maxExplosionParticles = 5;
+        // PHYSICS
+        .g = 9.81f,
+        .gUniversal = 10,
+        .maxGravityDistance = 100.0f,
+        .kElectric = 50.0f,
+        .maxForce = 100.0f,
+        .gravityType = GRAVITY_NONE,
+        .electricForce = false
+    };
 
-    // VIRTUAL PARTICLE TAB
-    int minVirtualParticleSpeed = 5;
-    int maxVirtualParticleSpeed = 25;
-    int minVirtualParticleLifeTime = 5;
-    int maxVirtualParticleLifeTime = 25;
-    float minTimeBetweenVirtualPairs = 5.0f;
-
-    // PHYSICS TAB
-    float g = 9.81f;
-    float gUniversal = 10;
-    float maxGravityDistance = 100.0f;
-    float kElectric = 50.0f;
-    float maxForce = 100.0f;
-    GravityType gravityType = GRAVITY_NONE;
-    bool electricForce = false;
+    Particles particles = {
+        .items = (Particle *)malloc(config.maxParticles * sizeof(Particle)),
+        .count = 0,
+        .capacity = config.initialCapacity,
+    };
+    
+    InitGrid(&config);
+    InitParticles(&config, &particles);
+    Shader glowShader = LoadShader(0, "glow.fs");
+    RenderTexture2D target = LoadRenderTexture(WIDTH, HEIGHT);
 
     bool dropDownOpen = true;
-
-    Rectangle panelRec = {20, 40, 200, 150};
-    Rectangle panelContentRec = {0, 0, 340, 340};
-    Rectangle panelView = {0};
-    Vector2 panelScroll = {99, -20};
-
     const char *tabTexts[MAX_TABS] = {"General", "Particles", "Explosions", "Virtual Particles", "Physics"};
-
-    bool showContentArea = true;
-
-    bool editMode = true;
-    int value = 0;
-    int active = 0;
 
     int xOffset = 20;
     int yOffset = 20;
 
     int seed = 0;
 
+    RenderTexture2D simulationTexture = LoadRenderTexture(WIDTH, HEIGHT);
+    Rectangle pauseBtnRect =   (Rectangle){10, HEIGHT - 40, 100, 30};
+    Rectangle resumeBtnRect =  (Rectangle){120, HEIGHT - 40, 100, 30};
+    Rectangle resetBtnRect =   (Rectangle){230, HEIGHT - 40, 100, 30};
+    Rectangle settingsBtnRect = (Rectangle){WIDTH - 150, HEIGHT - 40, 130, 30};
+
     while (!WindowShouldClose())
     {
+        float delta = GetFrameTime();
         GuiSetStyle(DEFAULT, TEXT_SIZE, scaledFontSize);
-        if (showConfigPanel)
+        Vector2 mousePos = GetMousePosition();
+        Rectangle buttonRect = (Rectangle){WIDTH - 150, HEIGHT - 50, 130, 30};
+
+        bool mouseOverButton = CheckCollisionPointRec(mousePos, buttonRect);
+        bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+        bool overPause   = CheckCollisionPointRec(mousePos, pauseBtnRect);
+        bool overResume  = CheckCollisionPointRec(mousePos, resumeBtnRect);
+        bool overReset   = CheckCollisionPointRec(mousePos, resetBtnRect);
+        bool overSetting = CheckCollisionPointRec(mousePos, settingsBtnRect);
+
+        if (mouseClicked)
         {
+            if (overPause) {
+                paused = true;
+            }
+            else if (overResume) {
+                paused = false;
+            }
+            else if (overReset) {
+                ResetParticles(&config, &particles);
+            }
+            else if (overSetting) {
+                showConfigPanel = showConfigPanel ? false : true;
+            }
+        }
+
+        if (!showConfigPanel && !paused)
+        {
+            HandleInput(&config, &particles);
+
+            if (config.virtualParticles)
+            {
+                GenerateVirtualParticles(&config, &particles, delta);
+            }
+
+            UpdateSimulation(&config, &particles, &target);
+        }
+
+        BeginTextureMode(simulationTexture);
             ClearBackground(RAYWHITE);
 
+            if (!showConfigPanel)
+            {
+                BeginScissorMode(0, 0, WIDTH, HEIGHT - 50);
+                RenderSimulation(glowShader, target);
+                EndScissorMode();
+            }
+            else
+            {
+                ClearBackground(RAYWHITE);
+                Rectangle tabBarBounds = {xOffset, yOffset, 760, 40};
+                int closedTab = GuiTabBar(tabBarBounds, tabTexts, MAX_TABS, &activeTab);
 
-            Rectangle tabBarBounds = {xOffset, yOffset, 760, 40};
-            int closedTab = GuiTabBar(tabBarBounds, tabTexts, MAX_TABS, &activeTab);
+                if (closedTab >= 0)
+                {
+                    TraceLog(LOG_INFO, "Pestaña cerrada: %d", closedTab);
+                }
 
-            if (closedTab >= 0)
-            {
-                TraceLog(LOG_INFO, "Pestaña cerrada: %d", closedTab);
+                if (activeTab == 0)
+                {
+                    generalTab(&config.maxParticles, &config.initialCapacity, &seed, &config.lifetime, &config.fragmentParticlesLive, &config.virtualParticles);
+                }
+                else if (activeTab == 1)
+                {
+                    particlesTab(&config.minParticleLifeTime, &config.maxParticleLifeTime, &config.minParticleSpeed, &config.maxParticleSpeed, &config.minParticleMass, &config.maxParticleMass, &config.trailLength);
+                }
+                else if (activeTab == 2)
+                {
+                    explosionTab(&config.minExplosionParticles, &config.maxExplosionParticles);
+                }
+                else if (activeTab == 3)
+                {
+                    virtualParticlesTab(&config.minVirtualParticleSpeed, &config.maxVirtualParticleSpeed, &config.minVirtualParticleLifeTime, &config.maxVirtualParticleLifeTime, &config.minTimeBetweenVirtualPairs);
+                }
+                else if (activeTab == 4)
+                {
+                    physicsTab(&config.g, &config.gUniversal, &config.maxGravityDistance, &config.kElectric, &config.maxForce, &config.gravityType, &config.electricForce, &dropDownOpen);
+                }
             }
+        EndTextureMode();
 
-            // General
-            if (activeTab == 0)
-            {
-                generalTab(&maxParticles, &initialCapacity, &seed, &lifetime, &fragmentParticlesLive, &virtualParticles);
-            }
-            else if (activeTab == 1)
-            {
-                particlesTab(&minParticleLifeTime, &maxParticleLifeTime, &minParticleSpeed, &maxParticleSpeed, &minParticleMass, &maxParticleMass, &trailLength);
-            }
-            else if (activeTab == 2)
-            {
-                explosionTab(&minExplosionParticles, &maxExplosionParticles);
-            }
-            else if (activeTab == 3)
-            {
-                virtualParticlesTab(&minVirtualParticleSpeed, &maxVirtualParticleSpeed, &minVirtualParticleLifeTime, &maxVirtualParticleLifeTime, &minTimeBetweenVirtualPairs);
-            }
-            else if (activeTab == 4)
-            {
-                physicsTab(&g, &gUniversal, &maxGravityDistance, &kElectric, &maxForce, &gravityType, &electricForce, &dropDownOpen);
-            }
-
-            if (GuiButton((Rectangle){BASE_SCREEN_WIDTH - 150, BASE_SCREEN_HEIGHT - 50, 130, 30}, "Simulation"))
-            {
-                showConfigPanel = false;
-            }
-        }
-        else
-        {
+        BeginDrawing();
             ClearBackground(BLACK);
-
-            // TODO: Draw simulation here
-
-            if (GuiButton((Rectangle){BASE_SCREEN_WIDTH - 150, BASE_SCREEN_HEIGHT - 50, 130, 30}, "Settings"))
-            {
-                showConfigPanel = true;
-            }
-        }
-
+            DrawTextureRec(simulationTexture.texture, (Rectangle){0, 0, (float)simulationTexture.texture.width, (float)-simulationTexture.texture.height}, (Vector2){0,0}, WHITE);
+            DrawRectangle(0, HEIGHT - 50, WIDTH, 50, (Color){200, 200, 200, 255});
+            if (GuiButton(pauseBtnRect, "Pause")) {}
+            if (GuiButton(resumeBtnRect, "Resume")) {}
+            if (GuiButton(resetBtnRect, "Reset")) {}
+            if (GuiButton(settingsBtnRect, "Settings")) {}
         EndDrawing();
     }
 
+    CleanupSimulation(&particles, glowShader, target);
+    UnloadRenderTexture(simulationTexture);
     CloseWindow();
+
     return 0;
 }

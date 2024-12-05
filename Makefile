@@ -2,12 +2,13 @@ CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -std=c99
 LDFLAGS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
-raygui:
-	$(CC) $(CFLAGS) -o controls controls.c $(LDFLAGS)
+SOURCES = settings.c simulation.c
+TARGET = simulation
 
+all: $(TARGET)
 
-main:
-	$(CC) $(CFLAGS) -o main main.c $(LDFLAGS)
+$(TARGET): $(SOURCES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
 
 clean:
-	rm -f main
+	rm -f $(TARGET)
