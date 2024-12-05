@@ -44,12 +44,10 @@ Interactivity
 Experiment with different configurations and observe how particles behave in various scenarios.
 
 # Examples
-Screenshot of the program. It has two parts:
-1. Simulation: Where the partiles live
-2. Config: `Pause`, `Resume`, `Reset` the simulation and `Settings`
-![full](./resources/full.png)
-
 ![fullGif](./resources/example1.gif)
+
+Full program
+![full](./resources/full.png)
 
 Particle settings
 ![particles](./resources/particles.png)
