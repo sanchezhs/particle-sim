@@ -50,16 +50,16 @@ Screenshot of the program. It has two parts:
 ![full](./resources/full.png)
 
 Particle settings
-![particles](./particles/.png)
+![particles](./particles.png)
 
 Particle explosions settings
-![explosions](./explosions/.png)
+![explosions](./explosions.png)
 
 Virtual particle settings
-![virtual](./virtual/.png)
+![virtual](./virtual.png)
 
 General settings relative to physics
-![physics](./physics/.png)
+![physics](./physics.png)
 
 # Known Issues (TODO)
 
