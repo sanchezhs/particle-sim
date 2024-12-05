@@ -49,6 +49,8 @@ Screenshot of the program. It has two parts:
 2. Config: `Pause`, `Resume`, `Reset` the simulation and `Settings`
 ![full](./resources/full.png)
 
+![fullGif](./resources/example1.gif)
+
 Particle settings
 ![particles](./particles.png)
 
