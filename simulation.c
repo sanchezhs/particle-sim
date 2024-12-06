@@ -7,13 +7,12 @@
 #include "simulation.h"
 
 
-Cell grid[GRID_WIDTH][GRID_HEIGHT];
+// Cell grid[GRID_WIDTH][GRID_HEIGHT];
+Cell **grid;
 int globalParticleID = 0;       // Global particle ID counter
 float timeSinceLastPair = 0.0f; // Global timer for particle generation
 
-
-void InitGrid();
-void AssignParticlesToCells(Particles *particles);
+void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight);
 void ResolveCollition(Particle *p1, Particle *p2);
 bool Collide(Particle *p1, Particle *p2);
 
@@ -23,13 +22,13 @@ float GetRandomFloat(float min, float max)
     return min + (max - min) * GetRandomValue(0, 10000) / 10000.0f;
 }
 
-void ResetParticles(const SimulationConfig *config, Particles *particles)
+void ResetParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
     particles->count = 0;
-    InitParticles(config, particles);
+    InitParticles(config, particles, screenWidth, screenHeight);
 }
 
-void InitParticles(const SimulationConfig *config, Particles *particles)
+void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
     for (int i = 0; i < (*config).initialCapacity; i++)
     {
@@ -41,7 +40,7 @@ void InitParticles(const SimulationConfig *config, Particles *particles)
             .mass = mass,
             .size = cbrtf(mass),
             .charge = charge,
-            .position = (Vector2){GetRandomValue(50, WIDTH - 50), GetRandomValue(50, HEIGHT - 50)},
+            .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
             .velocity = (Vector2){GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0},
             .color = (charge > 0) ? RED : BLUE,
             .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
@@ -57,7 +56,7 @@ void InitParticles(const SimulationConfig *config, Particles *particles)
     }
 }
 
-void GenerateVirtualParticles(const SimulationConfig *config, Particles *particles, float delta)
+void GenerateVirtualParticles(const SimulationConfig *config, Particles *particles, float delta, int screenWidth, int screenHeight)
 {
     timeSinceLastPair += delta;
     if (timeSinceLastPair < (*config).minTimeBetweenVirtualPairs)
@@ -75,8 +74,8 @@ void GenerateVirtualParticles(const SimulationConfig *config, Particles *particl
     timeSinceLastPair = 0.0f;
 
     int lifetime = GetRandomValue((int)(*config).minVirtualParticleLifeTime, (int)(*config).maxVirtualParticleLifeTime);
-    int randx = GetRandomValue(0, WIDTH);
-    int randy = GetRandomValue(0, HEIGHT);
+    int randx = GetRandomValue(0, screenWidth);
+    int randy = GetRandomValue(0, screenHeight);
     Vector2 pos1 = (Vector2){randx, randy};
     Vector2 pos2 = (Vector2){randx + GetRandomValue(-1, 1), randy + GetRandomValue(-1, 1)};
     float mass = GetRandomValue(1, 10);
@@ -158,24 +157,40 @@ void ResolveCollition(Particle *p1, Particle *p2)
     p2->velocity.y += impulse * normal.y;
 }
 
-void InitGrid(const SimulationConfig *config)
+void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight)
 {
-    for (int x = 0; x < GRID_WIDTH; x++)
-    {
-        for (int y = 0; y < GRID_HEIGHT; y++)
-        {
-            grid[x][y].items = (Particle **)malloc((*config).maxParticles * sizeof(Particle *));
+    grid = (Cell **)malloc(gridWidth * sizeof(Cell *));
+    if (!grid) {
+        TraceLog(LOG_ERROR, "Error al asignar memoria para grid");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int x = 0; x < gridWidth; x++) {
+        grid[x] = (Cell *)malloc(gridHeight * sizeof(Cell));
+        if (!grid[x]) {
+            TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d]", x);
+            exit(EXIT_FAILURE);
+        }
+
+        for (int y = 0; y < gridHeight; y++) {
+            grid[x][y].items = (Particle **)malloc(config->initialCapacity * sizeof(Particle *));
+            if (!grid[x][y].items) {
+                TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d][%d].items", x, y);
+                exit(EXIT_FAILURE);
+            }
             grid[x][y].count = 0;
-            grid[x][y].capacity = (*config).initialCapacity;
+            grid[x][y].capacity = config->initialCapacity;
         }
     }
 }
 
-void AssignParticlesToCells(Particles *particles)
+
+
+void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight)
 {
-    for (int x = 0; x < GRID_WIDTH; x++)
+    for (int x = 0; x < gridWidth; x++)
     {
-        for (int y = 0; y < GRID_HEIGHT; y++)
+        for (int y = 0; y < gridHeight; y++)
         {
             grid[x][y].count = 0;
         }
@@ -187,14 +202,14 @@ void AssignParticlesToCells(Particles *particles)
         int cellX = p->position.x / CELL_SIZE;
         int cellY = p->position.y / CELL_SIZE;
 
-        if (cellX >= 0 && cellX < GRID_WIDTH && cellY >= 0 && cellY < GRID_HEIGHT)
+        if (cellX >= 0 && cellX < gridWidth && cellY >= 0 && cellY < gridHeight)
         {
             ARRAY_APPEND_PTR(&grid[cellX][cellY], p);
         }
     }
 }
 
-void Simulate(const SimulationConfig *config , Particles *particles)
+void Simulate(const SimulationConfig *config , Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
 {
     Particles newParticles = {
         .items = (Particle *)malloc((*config).maxParticles * sizeof(Particle)),
@@ -290,7 +305,7 @@ void Simulate(const SimulationConfig *config , Particles *particles)
 
     free(newParticles.items);
 
-    AssignParticlesToCells(particles);
+    AssignParticlesToCells(particles, gridWidth, gridHeight);
 
     // Process collisions and forces
     for (int i = 0; i < particles->count; i++)
@@ -298,9 +313,9 @@ void Simulate(const SimulationConfig *config , Particles *particles)
         Particle *p = &particles->items[i];
 
         // Screen limits control
-        if (p->position.x <= 0 || p->position.x >= WIDTH)
+        if (p->position.x <= 0 || p->position.x >= screenWidth)
             p->velocity.x *= -1;
-        if (p->position.y <= 0 || p->position.y >= HEIGHT)
+        if (p->position.y <= 0 || p->position.y >= screenWidth)
             p->velocity.y *= -1;
 
         // Gravity
@@ -310,7 +325,7 @@ void Simulate(const SimulationConfig *config , Particles *particles)
             break;
         case GRAVITY_CENTER:
         {
-            Vector2 center = {WIDTH / 2.0f, HEIGHT / 2.0f};
+            Vector2 center = {screenWidth / 2.0f, screenWidth / 2.0f};
             Vector2 dir = {center.x - p->position.x, center.y - p->position.y};
             float distance = sqrtf(dir.x * dir.x + dir.y * dir.y);
             if (distance != 0)
@@ -350,7 +365,7 @@ void Simulate(const SimulationConfig *config , Particles *particles)
                 int neighborX = cellX + offsetX;
                 int neighborY = cellY + offsetY;
 
-                if (neighborX >= 0 && neighborX < GRID_WIDTH && neighborY >= 0 && neighborY < GRID_HEIGHT)
+                if (neighborX >= 0 && neighborX < gridWidth && neighborY >= 0 && neighborY < gridHeight)
                 {
                     Cell *cell = &grid[neighborX][neighborY];
 
@@ -449,11 +464,11 @@ void HandleInput(const SimulationConfig *config, Particles *particles)
     }
 }
 
-void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target)
+void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
 {
     BeginTextureMode(*target);
     ClearBackground(BLACK);
-    Simulate(config, particles);
+    Simulate(config, particles, screenWidth, screenHeight, gridWidth, gridHeight);
     EndTextureMode();
 }
 
@@ -468,11 +483,11 @@ void RenderSimulation(Shader glowShader, RenderTexture2D target)
     EndDrawing();
 }
 
-void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target)
+void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight)
 {
-    for (int x = 0; x < GRID_WIDTH; x++)
+    for (int x = 0; x < gridWidth; x++)
     {
-        for (int y = 0; y < GRID_HEIGHT; y++)
+        for (int y = 0; y < gridHeight; y++)
         {
             if (grid[x][y].items != NULL)
             {
@@ -487,4 +502,15 @@ void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D 
         free(particles->items);
         particles->items = NULL;
     }
+}
+
+void FreeGrid(int gridWidth, int gridHeight)
+{
+    for (int x = 0; x < gridWidth; x++) {
+        for (int y = 0; y < gridHeight; y++) {
+            free(grid[x][y].items);
+        }
+        free(grid[x]);
+    }
+    free(grid);
 }
