@@ -11,6 +11,7 @@ int main(void)
 
     bool showConfigPanel = false;
     bool paused = false;
+    bool boot = true;
 
     int screenWidth = GetScreenWidth();
     float scaleFactor = (float)screenWidth / 800;
@@ -21,21 +22,22 @@ int main(void)
 
     int activeTab = 0;
 
+    // Simulation configuration
     SimulationConfig config = {
         // GENERAL
-        .maxParticles = 100,
+        .maxParticles = 1000,
         .initialCapacity = 10,
         .lifetime = false,
         .fragmentParticlesLive = false,
         .virtualParticles = false,
 
         // PARTICLES
-        .minParticleLifeTime = 10,
-        .maxParticleLifeTime = 50,
-        .minParticleSpeed = 10,
-        .maxParticleSpeed = 20,
-        .minParticleMass = 5,
-        .maxParticleMass = 10,
+        .minParticleLifeTime = 50,
+        .maxParticleLifeTime = 250,
+        .minParticleSpeed = 5,
+        .maxParticleSpeed = 25,
+        .minParticleMass = 1,
+        .maxParticleMass = 100,
         .trailLength = 5,
 
         // EXPLOSION
@@ -51,10 +53,10 @@ int main(void)
 
         // PHYSICS
         .g = 9.81f,
-        .gUniversal = 10,
-        .maxGravityDistance = 100.0f,
-        .kElectric = 50.0f,
-        .maxForce = 100.0f,
+        .gUniversal = 6.67430e-11f,
+        .maxGravityDistance = 50.0f,
+        .kElectric = 5.0f,
+        .maxForce = 10.0f,
         .gravityType = GRAVITY_NONE,
         .electricForce = false};
 
@@ -64,10 +66,9 @@ int main(void)
         .capacity = config.initialCapacity,
     };
 
-    InitGrid(&config, gridWidth, gridHeight);
-    InitParticles(&config, &particles, GetScreenWidth(), GetScreenHeight());
     Shader glowShader = LoadShader(0, "glow.fs");
     RenderTexture2D target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    RenderTexture2D simulationTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
 
     bool dropDownOpen = true;
     const char *tabTexts[MAX_TABS] = {"General", "Particles", "Explosions", "Virtual Particles", "Physics"};
@@ -76,9 +77,9 @@ int main(void)
     int yOffset = GetScreenHeight() * 0.02;
     int seed = 0;
 
-    RenderTexture2D simulationTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
     int buttonWidth = GetScreenWidth() * 0.05;
     int buttonHeight = GetScreenHeight() * 0.025;
+    int footerHeight = buttonHeight + GetScreenHeight() * 0.03;
 
     Rectangle pauseBtnRect = (Rectangle){GetScreenWidth() * 0.01, GetScreenHeight() * 0.95 - buttonHeight, buttonWidth, buttonHeight};
     Rectangle resumeBtnRect = (Rectangle){GetScreenWidth() * 0.01 + buttonWidth + 10, GetScreenHeight() * 0.95 - buttonHeight, buttonWidth, buttonHeight};
@@ -87,8 +88,10 @@ int main(void)
         GetScreenWidth() - buttonWidth - (GetScreenWidth() * 0.01),
         GetScreenHeight() - buttonHeight - (GetScreenHeight() * 0.05),
         buttonWidth,
-        buttonHeight
-    };
+        buttonHeight};
+
+    InitGrid(&config, gridWidth, gridHeight);
+    InitParticles(&config, &particles, GetScreenWidth(), GetScreenHeight() - footerHeight);
 
     while (!WindowShouldClose())
     {
@@ -103,14 +106,17 @@ int main(void)
         bool overResume = CheckCollisionPointRec(mousePos, resumeBtnRect);
         bool overReset = CheckCollisionPointRec(mousePos, resetBtnRect);
         bool overSetting = CheckCollisionPointRec(mousePos, settingsBtnRect);
+        footerHeight = buttonHeight + GetScreenHeight() * 0.03;
 
-        if (IsWindowResized()) {
+        if (IsWindowResized())
+        {
+            CheckAndMoveParticles(&config, &particles, GetScreenWidth(), GetScreenHeight() - footerHeight);
             UnloadRenderTexture(simulationTexture);
             UnloadRenderTexture(target);
-            simulationTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
-            target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+            simulationTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight() - footerHeight);
+            target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight() - footerHeight);
             gridWidth = ((GetScreenWidth() + CELL_SIZE - 1) / CELL_SIZE);
-            gridHeight = ((GetScreenHeight() + CELL_SIZE - 1) / CELL_SIZE);
+            gridHeight = ((GetScreenHeight() - footerHeight + CELL_SIZE - 1) / CELL_SIZE);
         }
 
         if (mouseClicked)
@@ -125,7 +131,7 @@ int main(void)
             }
             else if (overReset)
             {
-                ResetParticles(&config, &particles, GetScreenWidth(), GetScreenHeight());
+                ResetSimulation(&config, &particles, GetScreenWidth(), GetScreenHeight() - footerHeight);
             }
             else if (overSetting)
             {
@@ -135,14 +141,13 @@ int main(void)
 
         if (!showConfigPanel && !paused)
         {
-            HandleInput(&config, &particles);
+            HandleInput(&config, &particles, GetScreenWidth(), GetScreenHeight() - footerHeight);
 
             if (config.virtualParticles)
             {
                 GenerateVirtualParticles(&config, &particles, delta, GetScreenWidth(), GetScreenHeight());
             }
-
-            UpdateSimulation(&config, &particles, &target, GetScreenWidth(), GetScreenHeight(), gridWidth, gridHeight);
+            UpdateSimulation(&config, &particles, &target, GetScreenWidth(), GetScreenHeight() - footerHeight, gridWidth, gridHeight);
         }
 
         BeginTextureMode(simulationTexture);
@@ -191,32 +196,35 @@ int main(void)
         BeginDrawing();
         ClearBackground(BLACK);
         DrawTextureRec(simulationTexture.texture, (Rectangle){0, 0, (float)simulationTexture.texture.width, (float)-simulationTexture.texture.height}, (Vector2){0, 0}, WHITE);
-        int footerHeight = buttonHeight + GetScreenHeight() * 0.03;
         DrawRectangle(0, GetScreenHeight() - footerHeight, GetScreenWidth(), footerHeight, (Color){200, 200, 200, 255});
 
         int numButtons = 4;
         int spacing = 10;
         float totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
         float startX = (GetScreenWidth() - totalWidth) / 2.0f;
-        float centerY = GetScreenHeight() - footerHeight/2.0f - buttonHeight/2.0f;
+        float centerY = GetScreenHeight() - footerHeight / 2.0f - buttonHeight / 2.0f;
 
         pauseBtnRect = (Rectangle){startX, centerY, buttonWidth, buttonHeight};
         resumeBtnRect = (Rectangle){startX + (buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
-        resetBtnRect = (Rectangle){startX + 2*(buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
-        settingsBtnRect = (Rectangle){startX + 3*(buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
+        resetBtnRect = (Rectangle){startX + 2 * (buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
+        settingsBtnRect = (Rectangle){startX + 3 * (buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
 
-        if (GuiButton(pauseBtnRect, "Pause"))
+        // TextBox depends on the number of digits in the particle count
+        int particleCountDigits = 0;
+        int temp = particles.count;
+        while (temp != 0)
         {
+            temp /= 10;
+            particleCountDigits++;
         }
-        if (GuiButton(resumeBtnRect, "Resume"))
-        {
-        }
-        if (GuiButton(resetBtnRect, "Reset"))
-        {
-        }
-        if (GuiButton(settingsBtnRect, "Settings"))
-        {
-        }
+        int particleCountWidth = particleCountDigits * 10 + 165;
+
+        GuiButton(pauseBtnRect, "Pause");
+        GuiButton(resumeBtnRect, "Resume");
+        GuiButton(resetBtnRect, "Reset");
+        GuiButton(settingsBtnRect, "Settings");
+        GuiTextBox((Rectangle){GetScreenWidth() * 0.02, centerY, particleCountWidth, 30}, TextFormat("Particles %d", particles.count), 10, false);
+
         EndDrawing();
     }
 

@@ -41,8 +41,13 @@ extern "C"
         if ((array)->count >= (array)->capacity)                                                   \
         {                                                                                          \
             (array)->capacity = (array)->capacity == 0 ? INITIAL_CAPACITY : (array)->capacity * 2; \
-            (array)->items = realloc((array)->items, (array)->capacity * sizeof(*(array)->items)); \
-            assert((array)->items != NULL && "Buy more RAM lol");                                  \
+            void *temp = realloc((array)->items, (array)->capacity * sizeof(*(array)->items));     \
+            if (temp == NULL)                                                                      \
+            {                                                                                      \
+                fprintf(stderr, "Memory allocation failed. Exiting...\n");                         \
+                exit(EXIT_FAILURE);                                                                \
+            }                                                                                      \
+            (array)->items = temp;                                                                 \
         }                                                                                          \
                                                                                                    \
         (array)->items[(array)->count++] = (item);                                                 \
@@ -131,13 +136,14 @@ typedef struct Cell
 
 void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight);
 void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
-void ResetParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
 void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
 void RenderSimulation(Shader glowShader, RenderTexture2D target);
 void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight);
+void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void FreeGrid(int gridWidth, int gridHeight);
 void GenerateVirtualParticles(const SimulationConfig *config, Particles *particles, float delta, int screenWidth, int screenHeight);
-void HandleInput(const SimulationConfig *config, Particles *particles);
+void CheckAndMoveParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
+void HandleInput(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 
 #endif // SIMULATION_H

@@ -64,3 +64,8 @@ General settings relative to physics
 # Known Issues (TODO)
 
 - Segmentation Faults: Some settings combinations may lead to segmentation faults.
+- Using i3wm, particles spawn within a screen width modified later by i3, which causes spawns outside the window.
+- Zoom In/Out.
+- Screenshots.
+- Individual particle stats.
+- Random initial state and allow user to save it.

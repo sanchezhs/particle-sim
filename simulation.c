@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include "simulation.h"
 
-
 // Cell grid[GRID_WIDTH][GRID_HEIGHT];
 Cell **grid;
 int globalParticleID = 0;       // Global particle ID counter
@@ -22,18 +21,48 @@ float GetRandomFloat(float min, float max)
     return min + (max - min) * GetRandomValue(0, 10000) / 10000.0f;
 }
 
-void ResetParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
     particles->count = 0;
+    globalParticleID = 0;
+
+    if (particles->items != NULL)
+    {
+        free(particles->items);
+        particles->items = NULL;
+    }
+
+    particles->capacity = config->initialCapacity;
+
+    particles->items = (Particle *)malloc(particles->capacity * sizeof(Particle));
+    if (particles->items == NULL)
+    {
+        TraceLog(LOG_ERROR, "Memory allocation failed during Resetsimulation");
+        return;
+    }
+
     InitParticles(config, particles, screenWidth, screenHeight);
+
+    // Reset grid
+    for (int x = 0; x < GRID_WIDTH; x++)
+    {
+        for (int y = 0; y < GRID_HEIGHT; y++)
+        {
+            grid[x][y].count = 0;
+        }
+    }
 }
 
 void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
+    assert(screenWidth > 100 && screenHeight > 100 && "Screen dimensions are too small!");
+
     for (int i = 0; i < (*config).initialCapacity; i++)
     {
         float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+        int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
+        int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
 
         Particle p = (Particle){
             .id = globalParticleID++,
@@ -41,18 +70,57 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
             .size = cbrtf(mass),
             .charge = charge,
             .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
-            .velocity = (Vector2){GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0},
+            .velocity = (Vector2){
+                GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, // x
+                GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0  // y
+            },
             .color = (charge > 0) ? RED : BLUE,
             .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
             .isFragment = false,
             .isVirtual = false,
         };
-        for (int j = 0; j < (int)((*config).trailLength); j++)
+        // Randomize direction
+        p.velocity.x *= xDirection;
+        p.velocity.y *= yDirection;
+
+        int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
+        for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
         {
             p.trail[j] = p.position;
         }
         p.trailIndex = 0;
         ARRAY_APPEND(particles, p);
+    }
+}
+
+void CheckAndMoveParticles(const SimulationConfig *config, Particles *particles, int width, int height)
+{
+    for (int i = 0; i < particles->count; i++)
+    {
+        Particle *p = &particles->items[i];
+
+        bool outOfBounds = false;
+
+        if (p->position.x < p->size || p->position.x > (width - p->size))
+        {
+            outOfBounds = true;
+        }
+
+        if (p->position.y < p->size || p->position.y > (height - p->size))
+        {
+            outOfBounds = true;
+        }
+
+        if (outOfBounds)
+        {
+            p->position.x = (float)GetRandomValue((int)p->size, width - (int)p->size);
+            p->position.y = (float)GetRandomValue((int)p->size, height - (int)p->size);
+
+            for (int t = 0; t < config->trailLength; t++) {
+                p->trail[t] = p->position;
+            }
+            p->trailIndex = 0;
+        }
     }
 }
 
@@ -160,21 +228,26 @@ void ResolveCollition(Particle *p1, Particle *p2)
 void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight)
 {
     grid = (Cell **)malloc(gridWidth * sizeof(Cell *));
-    if (!grid) {
+    if (!grid)
+    {
         TraceLog(LOG_ERROR, "Error al asignar memoria para grid");
         exit(EXIT_FAILURE);
     }
 
-    for (int x = 0; x < gridWidth; x++) {
+    for (int x = 0; x < gridWidth; x++)
+    {
         grid[x] = (Cell *)malloc(gridHeight * sizeof(Cell));
-        if (!grid[x]) {
+        if (!grid[x])
+        {
             TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d]", x);
             exit(EXIT_FAILURE);
         }
 
-        for (int y = 0; y < gridHeight; y++) {
+        for (int y = 0; y < gridHeight; y++)
+        {
             grid[x][y].items = (Particle **)malloc(config->initialCapacity * sizeof(Particle *));
-            if (!grid[x][y].items) {
+            if (!grid[x][y].items)
+            {
                 TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d][%d].items", x, y);
                 exit(EXIT_FAILURE);
             }
@@ -183,8 +256,6 @@ void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight)
         }
     }
 }
-
-
 
 void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight)
 {
@@ -209,7 +280,7 @@ void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight)
     }
 }
 
-void Simulate(const SimulationConfig *config , Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
+void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
 {
     Particles newParticles = {
         .items = (Particle *)malloc((*config).maxParticles * sizeof(Particle)),
@@ -283,7 +354,6 @@ void Simulate(const SimulationConfig *config , Particles *particles, int screenW
         }
         particles->items[alive++] = particles->items[i];
     }
-
     particles->count = alive;
 
     if (particles->count + newParticles.count <= (*config).maxParticles)
@@ -312,10 +382,10 @@ void Simulate(const SimulationConfig *config , Particles *particles, int screenW
         Particle *p = &particles->items[i];
 
         // Screen limits control
+        if (p->position.y <= 0 || p->position.y >= screenHeight)
+            p->velocity.y *= -1;
         if (p->position.x <= 0 || p->position.x >= screenWidth)
             p->velocity.x *= -1;
-        if (p->position.y <= 0 || p->position.y >= screenWidth)
-            p->velocity.y *= -1;
 
         // Gravity
         switch ((*config).gravityType)
@@ -421,7 +491,6 @@ void Simulate(const SimulationConfig *config , Particles *particles, int screenW
                 }
             }
         }
-
         DrawCircleV(p->position, p->size, p->color);
         for (int t = 0; t < (int)((*config).trailLength) - 1; t++)
         {
@@ -436,30 +505,35 @@ void Simulate(const SimulationConfig *config , Particles *particles, int screenW
     }
 }
 
-void HandleInput(const SimulationConfig *config, Particles *particles)
+void HandleInput(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-        float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
-        float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+        Vector2 mousePos = GetMousePosition();
 
-        Particle newParticle = {
-            .id = globalParticleID++,
-            .mass = mass,
-            .size = cbrtf(mass),
-            .charge = charge,
-            .position = GetMousePosition(),
-            .velocity = (Vector2){GetRandomValue(-50, 50) / 10.0f, GetRandomValue(-50, 50) / 10.0f},
-            .color = (charge > 0) ? RED : BLUE,
-            .lifetime = GetRandomValue((*config).minParticleLifeTime, (*config).maxParticleLifeTime),
-            .isFragment = false,
-        };
-        for (int j = 0; j < (int)(*config).trailLength; j++)
+        if (mousePos.x > 0 && mousePos.x < screenWidth && mousePos.y > 0 && mousePos.y < screenHeight)
         {
-            newParticle.trail[j] = newParticle.position;
+            float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
+            float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+
+            Particle newParticle = {
+                .id = globalParticleID++,
+                .mass = mass,
+                .size = cbrtf(mass),
+                .charge = charge,
+                .position = GetMousePosition(),
+                .velocity = (Vector2){GetRandomValue(-50, 50) / 10.0f, GetRandomValue(-50, 50) / 10.0f},
+                .color = (charge > 0) ? RED : BLUE,
+                .lifetime = GetRandomValue((*config).minParticleLifeTime, (*config).maxParticleLifeTime),
+                .isFragment = false,
+            };
+            for (int j = 0; j < (int)(*config).trailLength; j++)
+            {
+                newParticle.trail[j] = newParticle.position;
+            }
+            newParticle.trailIndex = 0;
+            ARRAY_APPEND(particles, newParticle);
         }
-        newParticle.trailIndex = 0;
-        ARRAY_APPEND(particles, newParticle);
     }
 }
 
@@ -478,7 +552,6 @@ void RenderSimulation(Shader glowShader, RenderTexture2D target)
     BeginShaderMode(glowShader);
     DrawTextureRec(target.texture, (Rectangle){0, 0, (float)target.texture.width, (float)-target.texture.height}, (Vector2){0, 0}, WHITE);
     EndShaderMode();
-
     EndDrawing();
 }
 
@@ -505,8 +578,10 @@ void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D 
 
 void FreeGrid(int gridWidth, int gridHeight)
 {
-    for (int x = 0; x < gridWidth; x++) {
-        for (int y = 0; y < gridHeight; y++) {
+    for (int x = 0; x < gridWidth; x++)
+    {
+        for (int y = 0; y < gridHeight; y++)
+        {
             free(grid[x][y].items);
         }
         free(grid[x]);
