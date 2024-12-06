@@ -232,10 +232,9 @@ void Simulate(const SimulationConfig *config , Particles *particles, int screenW
         p->color = ColorFromHSV(fmodf(speed * 10.0f, 360.0f), 1.0f, 1.0f);
 
         // Update size based on lifetime
-        if ((*config).lifetime)
+        if ((*config).lifetime || p->isVirtual)
         {
             p->size = cbrtf(p->mass) * (p->lifetime / (*config).maxParticleLifeTime);
-            // Update lifetime
             p->lifetime--;
         }
 
