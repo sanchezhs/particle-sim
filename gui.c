@@ -20,16 +20,16 @@ void generalTab(int *maxParticles, int *initialCapacity, int *seed, bool *lifeti
     yOffset += verticalSpacing;
     float maxParticlesTemp = (float)(*maxParticles);
     GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum particles");
-    GuiSlider((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, NULL, &maxParticlesTemp, 1.0f, 5000.0f);
+    GuiSlider((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, NULL, &maxParticlesTemp, 1.0f, 10000.0f);
     *maxParticles = (int)maxParticlesTemp;
-    GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, maxParticles, 1, 5000, false);
+    GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, maxParticles, 1, 10000, false);
 
     yOffset += verticalSpacing;
     float initialCapacityTemp = (float)(*initialCapacity);
     GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Initial Particles");
-    GuiSlider((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, NULL, &initialCapacityTemp, 1.0f, 500.0f);
+    GuiSlider((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, NULL, &initialCapacityTemp, 1.0f, 10000.0f);
     *initialCapacity = (int)initialCapacityTemp;
-    GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, initialCapacity, 1, 500, false);
+    GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, initialCapacity, 1, 10000, false);
 
     yOffset += verticalSpacing;
     if (GuiButton((Rectangle){xOffset, yOffset, labelWidth * 0.75f, controlHeight}, "Set Seed"))

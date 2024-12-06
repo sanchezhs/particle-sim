@@ -74,7 +74,8 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, // x
                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0  // y
             },
-            .color = (charge > 0) ? RED : BLUE,
+            // .color = (charge > 0) ? RED : BLUE,
+            .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
             .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
             .isFragment = false,
             .isVirtual = false,
@@ -300,7 +301,7 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
 
         // Update color based on speed
         float speed = sqrtf(p->velocity.x * p->velocity.x + p->velocity.y * p->velocity.y);
-        p->color = ColorFromHSV(fmodf(speed * 10.0f, 360.0f), 1.0f, 1.0f);
+        // p->color = ColorFromHSV(fmodf(speed * 10.0f, 360.0f), 1.0f, 1.0f);
 
         // Update size based on lifetime
         if ((*config).lifetime || p->isVirtual)
@@ -545,16 +546,6 @@ void UpdateSimulation(const SimulationConfig *config, Particles *particles, Rend
     EndTextureMode();
 }
 
-void RenderSimulation(Shader glowShader, RenderTexture2D target)
-{
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-    BeginShaderMode(glowShader);
-    DrawTextureRec(target.texture, (Rectangle){0, 0, (float)target.texture.width, (float)-target.texture.height}, (Vector2){0, 0}, WHITE);
-    EndShaderMode();
-    EndDrawing();
-}
-
 void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight)
 {
     for (int x = 0; x < gridWidth; x++)
@@ -568,7 +559,6 @@ void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D 
             }
         }
     }
-
     if (particles->items != NULL)
     {
         free(particles->items);
@@ -582,9 +572,12 @@ void FreeGrid(int gridWidth, int gridHeight)
     {
         for (int y = 0; y < gridHeight; y++)
         {
-            free(grid[x][y].items);
+            if (grid[x][y].items != NULL)
+                free(grid[x][y].items);
         }
-        free(grid[x]);
+        if (grid[x] != NULL)
+            free(grid[x]);
     }
-    free(grid);
+    if (grid != NULL)
+        free(grid);
 }

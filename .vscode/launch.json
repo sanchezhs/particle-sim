@@ -1,0 +1,36 @@
+{
+    // Use IntelliSense para aprender sobre los atributos posibles.
+    // Pasa el cursor sobre los atributos para ver descripciones.
+    // Para más información, visita: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug C",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/simulation",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Habilitar formateo automático",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            // "preLaunchTask": "Compilar C",
+            "miDebuggerPath": "/usr/bin/gdb", // Cambia esta ruta si GDB está en otra ubicación
+            "logging": {
+                "moduleLoad": false,
+                "trace": false,
+                "engineLogging": false,
+                "programOutput": true,
+                "exceptions": false
+            }
+        }
+    ]
+}

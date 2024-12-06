@@ -138,7 +138,6 @@ void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight);
 void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
 void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
-void RenderSimulation(Shader glowShader, RenderTexture2D target);
 void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight);
 void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void FreeGrid(int gridWidth, int gridHeight);
