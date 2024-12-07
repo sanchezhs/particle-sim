@@ -3,6 +3,15 @@
         "array": "cpp",
         "bitset": "cpp",
         "format": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "charconv": "c",
+        "chrono": "c",
+        "optional": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     }
 }

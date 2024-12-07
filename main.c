@@ -6,6 +6,63 @@
 #define SIMULATION_WIDTH  2500
 #define SIMULATION_HEIGHT 2500
 
+void initGuiParamaters(SimulationConfig *config, GeneralTabParameters *gpt, ParticlesTabParameters *ptp, ExplosionTabParameters *etp, VirtualParticlesTabParameters *vtp, PhysicsTabParameters *phtp) {
+    // General Tab parameters
+    gpt->maxParticles.value = &config->maxParticles;
+    gpt->initialCapacity.value = &config->initialCapacity;
+    gpt->seed = 0;
+    gpt->lifetime.value = &config->lifetime;
+    gpt->fragmentParticlesLive.value = &config->fragmentParticlesLive;
+    gpt->virtualParticles.value = &config->virtualParticles;
+    
+    // Particle Tab parameters
+    ptp->maxParticleLifeTime.value = &config->maxParticleLifeTime;
+    ptp->minParticleLifeTime.value = &config->minParticleLifeTime;
+    ptp->maxParticleSpeed.value = &config->maxParticleSpeed;
+    ptp->minParticleSpeed.value = &config->minParticleSpeed;
+    ptp->maxParticleMass.value = &config->maxParticleMass;
+    ptp->minParticleMass.value = &config->minParticleMass;
+    ptp->trailLength.value = &config->trailLength;
+
+    snprintf(ptp->maxParticleLifeTime.textValue, sizeof(ptp->maxParticleLifeTime.textValue), "%.2f", *(ptp->maxParticleLifeTime.value));
+    snprintf(ptp->minParticleLifeTime.textValue, sizeof(ptp->minParticleLifeTime.textValue), "%.2f", *(ptp->minParticleLifeTime.value));
+    snprintf(ptp->maxParticleSpeed.textValue, sizeof(ptp->maxParticleSpeed.textValue), "%.2f", *(ptp->maxParticleSpeed.value));
+    snprintf(ptp->minParticleSpeed.textValue, sizeof(ptp->minParticleSpeed.textValue), "%.2f", *(ptp->minParticleSpeed.value));
+    snprintf(ptp->maxParticleMass.textValue, sizeof(ptp->maxParticleMass.textValue), "%.2f", *(ptp->maxParticleMass.value));
+    snprintf(ptp->minParticleMass.textValue, sizeof(ptp->minParticleMass.textValue), "%.2f", *(ptp->minParticleMass.value));
+    snprintf(ptp->trailLength.textValue, sizeof(ptp->trailLength.textValue), "%d", *(ptp->trailLength.value));
+
+    // Explosion Tab parameters
+    etp->minExplosionParticles.value = &config->minExplosionParticles;
+    etp->maxExplosionParticles.value = &config->maxExplosionParticles;
+
+
+    // Virtual Particles Tab parameters
+    vtp->minVirtualParticleSpeed.value = &config->minVirtualParticleSpeed;
+    vtp->maxVirtualParticleSpeed.value = &config->maxVirtualParticleSpeed;
+    vtp->minVirtualParticleLifeTime.value = &config->minVirtualParticleLifeTime;
+    vtp->maxVirtualParticleLifeTime.value = &config->maxVirtualParticleLifeTime;
+    vtp->minTimeBetweenVirtualPairs.value = &config->minTimeBetweenVirtualPairs;
+
+    snprintf(vtp->minTimeBetweenVirtualPairs.textValue, sizeof(vtp->minTimeBetweenVirtualPairs.textValue), "%.2f", *(vtp->minTimeBetweenVirtualPairs.value));
+
+    // Physics Tab parameters
+    phtp->g.value = &config->g;
+    phtp->gUniversal.value = &config->gUniversal;
+    phtp->maxGravityDistance.value = &config->maxGravityDistance;
+    phtp->kElectric.value = &config->kElectric;
+    phtp->maxForce.value = &config->maxForce;
+    phtp->electricForce.value = &config->electricForce;
+    phtp->gravityType = &config->gravityType;
+    phtp->dropDownOpen = false;
+
+    snprintf(phtp->g.textValue, sizeof(phtp->g.textValue), "%.2f", *(phtp->g.value));
+    snprintf(phtp->gUniversal.textValue, sizeof(phtp->gUniversal.textValue), "%.20f", *(phtp->gUniversal.value));
+    snprintf(phtp->maxGravityDistance.textValue, sizeof(phtp->maxGravityDistance.textValue), "%.2f", *(phtp->maxGravityDistance.value));
+    snprintf(phtp->kElectric.textValue, sizeof(phtp->kElectric.textValue), "%.2f", *(phtp->kElectric.value));
+    snprintf(phtp->maxForce.textValue, sizeof(phtp->maxForce.textValue), "%.2f", *(phtp->maxForce.value));
+}
+
 int main(void)
 {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -34,7 +91,31 @@ int main(void)
     Color boundaryColor = RED;
 
     // Simulation configuration
+    Vector2 groupCenters[3] = {
+        (Vector2){SIMULATION_WIDTH * 0.25f, SIMULATION_HEIGHT * 0.25f},
+        (Vector2){SIMULATION_WIDTH * 0.75f, SIMULATION_HEIGHT * 0.25f},
+        (Vector2){SIMULATION_WIDTH * 0.5f, SIMULATION_HEIGHT * 0.75f}
+    };
+
+    Vector2 blackHoleCenter = (Vector2){SIMULATION_WIDTH / 2.0f, SIMULATION_HEIGHT / 2.0f};
+
     SimulationConfig config = {
+
+        // Particle initialization pattern
+        .initialPattern = PATTERN_RANDOM,
+        .vortexCenter = (Vector2){SIMULATION_WIDTH / 2.0f, SIMULATION_HEIGHT / 2.0f},
+        .vortexStrength = 5.0f,
+        .radialStrength = 50.0f,
+        .numVortexParticles = 500,
+
+        .numGroups = 3,
+        .groupCenters = groupCenters,
+        .particlesPerGroup = 150,
+
+        .blackHoleCenter = blackHoleCenter,
+        .blackHoleMass = 1000.0f,
+        .blackHoleRadius = 50.0f,
+
         // GENERAL
         .maxParticles = 1000,
         .initialCapacity = 500,
@@ -77,8 +158,15 @@ int main(void)
         .capacity = config.initialCapacity,
     };
 
+    GeneralTabParameters gtp = {0};
+    ParticlesTabParameters ptp = {0};
+    ExplosionTabParameters etp = {0};
+    VirtualParticlesTabParameters vtp = {0};
+    PhysicsTabParameters phtp = {0};
+    initGuiParamaters(&config, &gtp, &ptp, &etp, &vtp, &phtp);
+
     Shader glowShader = LoadShader(0, "glow.fs");
-    // RenderTexture2D target = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+
     RenderTexture2D target = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
     RenderTexture2D simulationTexture = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
 
@@ -87,7 +175,6 @@ int main(void)
 
     int xOffset = GetScreenWidth() * 0.02;
     int yOffset = GetScreenHeight() * 0.02;
-    int seed = 0;
 
     int buttonWidth = GetScreenWidth() * 0.05;
     int buttonHeight = GetScreenHeight() * 0.025;
@@ -110,7 +197,6 @@ int main(void)
     const float ZOOM_INCREMENT = 0.1f;  // Increment per scroll
     const float ZOOM_MIN = 0.1f;        // Minimum zoom
     const float ZOOM_MAX = 10.0f;       // Maximum zoom
-
 
    while (!WindowShouldClose())
     {
@@ -225,11 +311,36 @@ int main(void)
                     DrawTextureRec(target.texture, (Rectangle){0, 0, (float)target.texture.width, (float)-target.texture.height}, (Vector2){0, 0}, WHITE);
                 EndShaderMode();
 
+            if (config.initialPattern == PATTERN_BLACKHOLE)
+            {
+                // Draw the event horizon
+                DrawCircleV(config.blackHoleCenter, config.blackHoleRadius, BLACK);
+                DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, config.blackHoleRadius, GRAY);
+
+                // Glow effect around the black hole
+                float glowRadius = config.blackHoleRadius * 1.5f;
+                float glowThickness = 2.0f;
+                for (float r = config.blackHoleRadius; r <= glowRadius; r += glowThickness)
+                {
+                    float alpha = 0.5f * (1.0f - (r - config.blackHoleRadius) / (glowRadius - config.blackHoleRadius));
+                    Color glowColor = (Color){128, 128, 128, (unsigned char)(alpha * 255)};
+                    DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, r, glowColor);
+                }
+
+                // Accretion disk effect
+                float accretionDiskInnerRadius = config.blackHoleRadius * 1.1f;
+                float accretionDiskOuterRadius = config.blackHoleRadius * 2.0f;
+                for (float r = accretionDiskInnerRadius; r <= accretionDiskOuterRadius; r += 1.0f)
+                {
+                    float alpha = 0.3f * (1.0f - (r - accretionDiskInnerRadius) / (accretionDiskOuterRadius - accretionDiskInnerRadius));
+                    Color diskColor = (Color){255, 165, 0, (unsigned char)(alpha * 255)}; // Orange glow
+                    DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, r, diskColor);
+                }
+            }
                 Rectangle simBounds = {0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT};
                 DrawRectangleLines(0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT, boundaryColor);
                 int lineThickness = 3;
                 DrawRectangleLinesEx(simBounds, lineThickness, boundaryColor);
-
             }
         EndTextureMode();
 
@@ -285,19 +396,19 @@ int main(void)
             switch (activeTab)
             {
                 case 0:
-                generalTab(&config.maxParticles, &config.initialCapacity, &seed, &config.lifetime, &config.fragmentParticlesLive, &config.virtualParticles);
+                generalTab(&gtp);
                 break;
                 case 1:
-                particlesTab(&config.minParticleLifeTime, &config.maxParticleLifeTime, &config.minParticleSpeed, &config.maxParticleSpeed, &config.minParticleMass, &config.maxParticleMass, &config.trailLength);
+                particlesTab(&ptp);
                 break;
                 case 2:
-                explosionTab(&config.minExplosionParticles, &config.maxExplosionParticles);
+                explosionTab(&etp);
                 break;
                 case 3:
-                virtualParticlesTab(&config.minVirtualParticleSpeed, &config.maxVirtualParticleSpeed, &config.minVirtualParticleLifeTime, &config.maxVirtualParticleLifeTime, &config.minTimeBetweenVirtualPairs);
+                virtualParticlesTab(&vtp);
                 break;
                 case 4:
-                physicsTab(&config.g, &config.gUniversal, &config.maxGravityDistance, &config.kElectric, &config.maxForce, &config.gravityType, &config.electricForce, &dropDownOpen);
+                physicsTab(&phtp);
                 break;
                 default:
                 break;
@@ -310,11 +421,10 @@ int main(void)
                 showConfigPanel = false;
             }
             }
-
         EndDrawing();
     }
 
-    CleanupSimulation(&particles, glowShader, target, gridWidth, gridHeight);
+    CleanupSimulation(&particles, gridWidth, gridHeight);
     FreeGrid(gridWidth, gridHeight);
     UnloadRenderTexture(simulationTexture);
     CloseWindow();

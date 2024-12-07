@@ -12,13 +12,53 @@ int globalParticleID = 0;       // Global particle ID counter
 float timeSinceLastPair = 0.0f; // Global timer for particle generation
 
 void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight);
-void ResolveCollition(Particle *p1, Particle *p2);
+void ResolveCollision(Particle *p1, Particle *p2);
 bool Collide(Particle *p1, Particle *p2);
 
 // Helpers
 float GetRandomFloat(float min, float max)
 {
     return min + (max - min) * GetRandomValue(0, 10000) / 10000.0f;
+}
+
+float Vector2Length(Vector2 v)
+{
+    return sqrtf(v.x * v.x + v.y * v.y);
+}
+
+Vector2 Vector2Normalize(Vector2 v)
+{
+    float length = Vector2Length(v);
+    Vector2 normalized = {0.0f, 0.0f};
+    if (length != 0.0f)
+    {
+        normalized.x = v.x / length;
+        normalized.y = v.y / length;
+    }
+    return normalized;
+}
+
+Vector2 Vector2Scale(Vector2 v, float scalar)
+{
+    Vector2 scaled = {v.x * scalar, v.y * scalar};
+    return scaled;
+}
+
+Vector2 Vector2Subtract(Vector2 a, Vector2 b)
+{
+    Vector2 result = {a.x - b.x, a.y - b.y};
+    return result;
+}
+
+Vector2 Vector2Add(Vector2 a, Vector2 b)
+{
+    Vector2 result = {a.x + b.x, a.y + b.y};
+    return result;
+}
+
+float Vector2DotProduct(Vector2 a, Vector2 b)
+{
+    return (a.x * b.x) + (a.y * b.y);
 }
 
 void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
@@ -53,13 +93,52 @@ void ResetSimulation(const SimulationConfig *config, Particles *particles, int s
     }
 }
 
-void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
-{
-    assert(screenWidth > 100 && screenHeight > 100 && "Screen dimensions are too small!");
+// void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+// {
+//     assert(screenWidth > 100 && screenHeight > 100 && "Screen dimensions are too small!");
 
-    for (int i = 0; i < (*config).initialCapacity; i++)
+//     for (int i = 0; i < (*config).initialCapacity; i++)
+//     {
+//         float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
+//         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+//         int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
+//         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
+
+//         Particle p = (Particle){
+//             .id = globalParticleID++,
+//             .mass = mass,
+//             .size = cbrtf(mass),
+//             .charge = charge,
+//             .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
+//             .velocity = (Vector2){
+//                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, // x
+//                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0  // y
+//             },
+//             // .color = (charge > 0) ? RED : BLUE,
+//             .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
+//             .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
+//             .isFragment = false,
+//             .isVirtual = false,
+//         };
+//         // Randomize direction
+//         p.velocity.x *= xDirection;
+//         p.velocity.y *= yDirection;
+
+//         int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
+//         for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
+//         {
+//             p.trail[j] = p.position;
+//         }
+//         p.trailIndex = 0;
+//         ARRAY_APPEND(particles, p);
+//     }
+// }
+
+void InitRandomParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+{
+    for (int i = 0; i < config->initialCapacity; i++)
     {
-        float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
+        float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
         int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
@@ -71,12 +150,11 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
             .charge = charge,
             .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
             .velocity = (Vector2){
-                GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, // x
-                GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0  // y
+                GetRandomValue((int)config->minParticleSpeed, (int)config->maxParticleSpeed) / 50.0f, // x
+                GetRandomValue((int)config->minParticleSpeed, (int)config->maxParticleSpeed) / 50.0f  // y
             },
-            // .color = (charge > 0) ? RED : BLUE,
             .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
-            .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
+            .lifetime = GetRandomValue((int)config->minParticleLifeTime, (int)config->maxParticleLifeTime),
             .isFragment = false,
             .isVirtual = false,
         };
@@ -94,34 +172,172 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
     }
 }
 
-void CheckAndMoveParticles(const SimulationConfig *config, Particles *particles, int width, int height)
+void InitVortexParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
-    for (int i = 0; i < particles->count; i++)
+    for (int i = 0; i < config->numVortexParticles && i < config->initialCapacity; i++)
     {
-        Particle *p = &particles->items[i];
+        float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
+        float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
 
-        bool outOfBounds = false;
+        // Posición alrededor del centro del vórtice
+        float angle = GetRandomValue(0, 360) * DEG2RAD;
+        float radius = GetRandomValue(50, 300); // Puedes ajustar los límites
+        Vector2 position = (Vector2){
+            config->vortexCenter.x + radius * cosf(angle),
+            config->vortexCenter.y + radius * sinf(angle)};
 
-        if (p->position.x < p->size || p->position.x > (width - p->size))
+        // Velocidad tangencial al vórtice
+        float speed = config->vortexStrength; // Puedes ajustar la fuerza del vórtice
+        Vector2 velocity = (Vector2){
+            -speed * sinf(angle), // Componente x
+            speed * cosf(angle)   // Componente y
+        };
+
+        float radialSpeed = GetRandomValue(-10, 10) / 100.0f; // Ajusta según la necesidad
+        velocity = (Vector2){velocity.x + radialSpeed * cosf(angle), velocity.y + radialSpeed * sinf(angle)};
+
+        Particle p = (Particle){
+            .id = globalParticleID++,
+            .mass = mass,
+            .size = cbrtf(mass),
+            .charge = charge,
+            .position = position,
+            .velocity = velocity,
+            .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
+            .lifetime = GetRandomValue((int)config->minParticleLifeTime, (int)config->maxParticleLifeTime),
+            .isFragment = false,
+            .isVirtual = false,
+        };
+
+        int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
+        for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
         {
-            outOfBounds = true;
+            p.trail[j] = p.position;
         }
+        p.trailIndex = 0;
+        ARRAY_APPEND(particles, p);
+    }
+}
 
-        if (p->position.y < p->size || p->position.y > (height - p->size))
+void InitGroupParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+{
+    for (int g = 0; g < config->numGroups && g < config->initialCapacity; g++)
+    {
+        for (int i = 0; i < config->particlesPerGroup && ARRAY_LEN(particles) < config->initialCapacity; i++)
         {
-            outOfBounds = true;
-        }
+            float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
+            float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
 
-        if (outOfBounds)
-        {
-            p->position.x = (float)GetRandomValue((int)p->size, width - (int)p->size);
-            p->position.y = (float)GetRandomValue((int)p->size, height - (int)p->size);
+            // Posición alrededor del centro del grupo
+            float angle = GetRandomValue(0, 360) * DEG2RAD;
+            float radius = GetRandomValue(0, 150); // Radio pequeño para agrupar
+            Vector2 position = (Vector2){
+                config->groupCenters[g].x + radius * cosf(angle),
+                config->groupCenters[g].y + radius * sinf(angle)};
 
-            for (int t = 0; t < config->trailLength; t++) {
-                p->trail[t] = p->position;
+            // Velocidad aleatoria
+            float speed = GetRandomValue((int)config->minParticleSpeed, (int)config->maxParticleSpeed) / 25.0f;
+            Vector2 velocity = (Vector2){
+                GetRandomValue(-speed, speed),
+                GetRandomValue(-speed, speed)};
+
+            Particle p = (Particle){
+                .id = globalParticleID++,
+                .mass = mass,
+                .size = cbrtf(mass),
+                .charge = charge,
+                .position = position,
+                .velocity = velocity,
+                .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
+                .lifetime = GetRandomValue((int)config->minParticleLifeTime, (int)config->maxParticleLifeTime),
+                .isFragment = false,
+                .isVirtual = false,
+            };
+
+            int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
+            for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
+            {
+                p.trail[j] = p.position;
             }
-            p->trailIndex = 0;
+            p.trailIndex = 0;
+            ARRAY_APPEND(particles, p);
         }
+    }
+}
+
+void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+{
+    for (int i = 0; i < config->initialCapacity; i++)
+    {
+        float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
+        float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+
+        // Posición aleatoria alrededor del agujero negro, fuera del horizonte de eventos
+        float angle = GetRandomValue(0, 360) * DEG2RAD;
+        float minRadius = config->blackHoleRadius + 10.0f; // Evitar superposición inicial
+        float maxRadius = screenWidth / 2.0f;              // Ajusta según el tamaño de la simulación
+        float radius = GetRandomValue((int)minRadius, (int)maxRadius);
+        Vector2 position = (Vector2){
+            config->blackHoleCenter.x + radius * cosf(angle),
+            config->blackHoleCenter.y + radius * sinf(angle)};
+
+        // Velocidad dirigida hacia el agujero negro con una magnitud proporcional a la distancia
+        float speed = config->blackHoleMass / (radius * radius + 1.0f); // Ajusta la fórmula según necesidad
+        Vector2 direction = Vector2Subtract(config->blackHoleCenter, position);
+        float distance = Vector2Length(direction);
+        Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
+        Vector2 velocity = Vector2Scale(dirNormalized, speed);
+
+        Particle p = (Particle){
+            .id = globalParticleID++,
+            .mass = mass,
+            .size = cbrtf(mass),
+            .charge = charge,
+            .position = position,
+            .velocity = velocity,
+            .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
+            .lifetime = GetRandomValue((int)config->minParticleLifeTime, (int)config->maxParticleLifeTime),
+            .isFragment = false,
+            .isVirtual = false,
+        };
+
+        // Inicializar el rastro
+        int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
+        for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
+        {
+            p.trail[j] = p.position;
+        }
+        p.trailIndex = 0;
+
+        ARRAY_APPEND(particles, p);
+    }
+}
+
+void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+{
+    assert(screenWidth > 100 && screenHeight > 100 && "Screen dimensions are too small!");
+    switch (config->initialPattern)
+    {
+    case PATTERN_RANDOM:
+        InitRandomParticles(config, particles, screenWidth, screenHeight);
+        break;
+
+    case PATTERN_VORTEX:
+        InitVortexParticles(config, particles, screenWidth, screenHeight);
+        break;
+
+    case PATTERN_GROUP:
+        InitGroupParticles(config, particles, screenWidth, screenHeight);
+        break;
+
+    case PATTERN_BLACKHOLE:
+        InitBlackHoleParticles(config, particles, screenWidth, screenHeight);
+        break;
+
+    default:
+        TraceLog(LOG_WARNING, "Pattern not recognized, using random pattern");
+        InitRandomParticles(config, particles, screenWidth, screenHeight);
+        break;
     }
 }
 
@@ -197,7 +413,7 @@ bool Collide(Particle *p1, Particle *p2)
     return distance <= (p1->size + p2->size);
 }
 
-void ResolveCollition(Particle *p1, Particle *p2)
+void ResolveCollision(Particle *p1, Particle *p2)
 {
     Vector2 delta = {p2->position.x - p1->position.x, p2->position.y - p1->position.y};
     float distance = sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -306,8 +522,10 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
         // Update size based on lifetime
         if ((*config).lifetime || p->isVirtual)
         {
-            p->size = cbrtf(p->mass) * (p->lifetime / (*config).maxParticleLifeTime);
-            p->lifetime--;
+            if (i % 2 == 0) {
+                p->size = cbrtf(p->mass) * (p->lifetime / (*config).maxParticleLifeTime);
+                p->lifetime--;
+            }
         }
 
         // Update trail
@@ -423,6 +641,71 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
             break;
         }
 
+        switch (config->initialPattern)
+        {
+        case PATTERN_RANDOM:
+            break;
+        case PATTERN_VORTEX:
+        {
+            Vector2 direction = (Vector2){config->vortexCenter.x - p->position.x, config->vortexCenter.y - p->position.y};
+            float distance = sqrtf(direction.x * direction.x + direction.y * direction.y);
+
+            if (distance > 0)
+            {
+                // Normalizar la dirección
+                Vector2 dirNormalized = (Vector2){direction.x / distance, direction.y / distance};
+
+                // **Fuerza Tangencial:**
+                // Rotar la dirección normalizada 90 grados para obtener la dirección tangencial
+                Vector2 tangential = (Vector2){dirNormalized.y, -dirNormalized.x};
+
+                // Aplicar la fuerza tangencial proporcional a la fuerza del vórtice y la inversa de la distancia
+                Vector2 tangentialForce = (Vector2){tangential.x * config->vortexStrength / (distance + 1.0f), tangential.y * config->vortexStrength / (distance + 1.0f)};
+                p->velocity = (Vector2){p->velocity.x + tangentialForce.x, p->velocity.y + tangentialForce.y};
+
+                // **Fuerza Radial:**
+                // Aplicar una fuerza radial para crear el efecto espiral
+                // Puedes ajustar la dirección (hacia adentro o afuera) cambiando el signo
+                Vector2 radialForce = (Vector2){dirNormalized.x * config->radialStrength / (distance + 1.0f), dirNormalized.y * config->radialStrength / (distance + 1.0f)};
+                p->velocity = (Vector2){p->velocity.x + radialForce.x, p->velocity.y + radialForce.y};
+            }
+        }
+        break;
+        case PATTERN_GROUP:
+            break;
+        case PATTERN_BLACKHOLE:
+        {
+            // Calcular la dirección y distancia desde el agujero negro
+            Vector2 direction = Vector2Subtract(config->blackHoleCenter, p->position);
+            float distance = Vector2Length(direction);
+
+            if (distance > 0)
+            {
+                // Normalizar la dirección
+                Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
+
+                // **Fuerza Gravitacional:**
+                // Aplicar una fuerza gravitacional hacia el agujero negro
+                // Puedes usar la ley de gravitación universal simplificada
+                float gravitationalForce = (config->blackHoleMass) / (distance * distance + 1.0f); // +1.0f para evitar división por cero
+                Vector2 gravityForce = Vector2Scale(dirNormalized, gravitationalForce);
+                p->velocity = Vector2Add(p->velocity, Vector2Scale(gravityForce, GetFrameTime()));
+
+                // **Verificar si la partícula cruza el horizonte de eventos**
+                if (distance <= config->blackHoleRadius)
+                {
+                    // Eliminar la partícula de la simulación
+                    particles->items[i] = particles->items[particles->count - 1];
+                    particles->count--;
+                    i--; // Revisar la nueva partícula en esta posición
+                    continue;
+                }
+            }
+        }
+        default:
+            break;
+        }
+
         // Computes the current cell of the particle
         int cellX = p->position.x / CELL_SIZE;
         int cellY = p->position.y / CELL_SIZE;
@@ -450,7 +733,7 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
                         {
                             if (Collide(p, other))
                             {
-                                ResolveCollition(p, other);
+                                ResolveCollision(p, other);
                             }
 
                             // Compute forces
@@ -546,7 +829,7 @@ void UpdateSimulation(const SimulationConfig *config, Particles *particles, Rend
     EndTextureMode();
 }
 
-void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight)
+void CleanupSimulation(Particles *particles, int gridWidth, int gridHeight)
 {
     for (int x = 0; x < gridWidth; x++)
     {

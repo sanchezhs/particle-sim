@@ -53,6 +53,8 @@ extern "C"
         (array)->items[(array)->count++] = (item);                                                 \
     } while (0)
 
+#define ARRAY_LEN(array) (sizeof(array) / sizeof((array)[0]))
+
 // Enumeration for gravity types
 typedef enum
 {
@@ -64,9 +66,30 @@ typedef enum
     GRAVITY_RIGHT
 } GravityType;
 
+typedef enum {
+    PATTERN_RANDOM,
+    PATTERN_VORTEX,
+    PATTERN_GROUP,
+    PATTERN_BLACKHOLE
+} ParticlePattern;
+
 // Structure to store all simulation parameters
 typedef struct
 {
+    ParticlePattern initialPattern;
+    Vector2 vortexCenter;
+    float vortexStrength;
+    float radialStrength;
+    int numVortexParticles;
+
+    int numGroups;
+    Vector2 *groupCenters;
+    int particlesPerGroup;
+
+    Vector2 blackHoleCenter;       // Posición del agujero negro
+    float blackHoleMass;           // Masa del agujero negro
+    float blackHoleRadius;   
+
     // General
     int maxParticles;           // Maximum number of particles
     int initialCapacity;        // Initial capacity of the particle system
@@ -81,7 +104,7 @@ typedef struct
     float maxParticleSpeed;    // Maximum particle speed
     float minParticleMass;     // Minimum particle mass
     float maxParticleMass;     // Maximum particle mass
-    float trailLength;         // Length of particle trails
+    int trailLength;           // Length of particle trails
 
     // Explosions
     int minExplosionParticles; // Minimum number of particles in an explosion
@@ -138,11 +161,10 @@ void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight);
 void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
 void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
-void CleanupSimulation(Particles *particles, Shader glowShader, RenderTexture2D target, int gridWidth, int gridHeight);
+void CleanupSimulation(Particles *particles, int gridWidth, int gridHeight);
 void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void FreeGrid(int gridWidth, int gridHeight);
 void GenerateVirtualParticles(const SimulationConfig *config, Particles *particles, float delta, int screenWidth, int screenHeight);
-void CheckAndMoveParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 void HandleInput(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 
 #endif // SIMULATION_H
