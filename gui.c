@@ -2,8 +2,28 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "raygui.h"
 #include "gui.h"
+
+void DrawTooltip(const char *tooltipText, Rectangle bounds)
+{
+    float padding = 8.0f;
+    Vector2 mousePosition = GetMousePosition();
+    float tooltipWidth = (float)strlen(tooltipText) * 2 * padding;
+    float tooltipHeight = GuiGetStyle(DEFAULT, TEXT_SIZE) + 2 * padding;
+    float tooltipX = mousePosition.x;
+    float tooltipY = mousePosition.y - tooltipHeight - 5.0f;
+
+    if (tooltipX + tooltipWidth > GetScreenWidth()) tooltipX -= (tooltipX + tooltipWidth) - GetScreenWidth();
+    if (tooltipY < 0) tooltipY = mousePosition.y + 5.0f;
+
+    DrawRectangleRounded((Rectangle){tooltipX, tooltipY, tooltipWidth, tooltipHeight}, 0.25f, 1, LIGHTGRAY);
+
+    GuiLabel((Rectangle){tooltipX + padding, tooltipY + padding, tooltipWidth - 2 * padding, tooltipHeight - 2 * padding},
+                tooltipText);
+}
+
 
 void generalTab(GeneralTabParameters *gtp)
 {
@@ -21,6 +41,10 @@ void generalTab(GeneralTabParameters *gtp)
     yOffset += verticalSpacing;
     GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum particles");
     GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, gtp->maxParticles.value, 0, 10000, true);
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
+    {
+        DrawTooltip("The maximum number of particles that can be simulated", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+    }
 
     yOffset += verticalSpacing;
     GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Initial Particles");
@@ -40,17 +64,29 @@ void generalTab(GeneralTabParameters *gtp)
     {
         TraceLog(LOG_INFO, "Lifetime: %s", *gtp->lifetime.value ? "true" : "false");
     }
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
+    {
+        DrawTooltip("Enable if particles should have a limited lifetime", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
+    }
 
     yOffset += verticalSpacing;
     if (GuiCheckBox((Rectangle){xOffset, yOffset, controlHeight, controlHeight}, "Fragment particles live", gtp->fragmentParticlesLive.value))
     {
         TraceLog(LOG_INFO, "Fragment particles live: %s", *gtp->fragmentParticlesLive.value ? "true" : "false");
     }
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
+    {
+        DrawTooltip("Enable if fragments should have their own lifetime", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
+    }
 
     yOffset += verticalSpacing;
     if (GuiCheckBox((Rectangle){xOffset, yOffset, controlHeight, controlHeight}, "Virtual particles", gtp->virtualParticles.value))
     {
         TraceLog(LOG_INFO, "Virtual particles: %s", *gtp->virtualParticles.value ? "true" : "false");
+    }
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
+    {
+        DrawTooltip("Enable if pairs of virtual particles can be generated", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
     }
 }
 
@@ -66,9 +102,12 @@ void particlesTab(ParticlesTabParameters *ptp)
     float controlWidth = screenWidth * 0.375f;
     float verticalSpacing = screenHeight * 0.05f;
 
+    // Description
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Particle parameters");
+
     // Min Particle Lifetime
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Particle Lifetime");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Mininum Lifetime");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -78,7 +117,7 @@ void particlesTab(ParticlesTabParameters *ptp)
 
     // Max Particle Lifetime
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Particle Lifetime");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Lifetime");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -88,7 +127,7 @@ void particlesTab(ParticlesTabParameters *ptp)
 
     // Min Particle Speed
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Particle Speed");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Mininum Speed");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -98,7 +137,7 @@ void particlesTab(ParticlesTabParameters *ptp)
 
     // Max Particle Speed
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Particle Speed");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Speed");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -108,7 +147,7 @@ void particlesTab(ParticlesTabParameters *ptp)
 
     // Min Particle Mass
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Particle Mass");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Mininum Mass");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -118,7 +157,7 @@ void particlesTab(ParticlesTabParameters *ptp)
 
     // Max Particle Mass
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Particle Mass");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Mass");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -151,9 +190,14 @@ void explosionTab(ExplosionTabParameters *etp)
     float controlWidth = screenWidth * 0.375f;
     float verticalSpacing = screenHeight * 0.05f;
 
+    // Description
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Particle explosion parameters");
+    yOffset += verticalSpacing*0.5f;
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Requires Particles Die to be enabled");
+    
     // Min Explosion Particles
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Explosion Particles");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Mininum Particles");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -162,10 +206,14 @@ void explosionTab(ExplosionTabParameters *etp)
         5,
         true
     );
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
+    {
+        DrawTooltip("The minimum number of particles created when a particle dies", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+    }
 
     // Max Explosion Particles
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Explosion Particles");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Particles");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -174,6 +222,11 @@ void explosionTab(ExplosionTabParameters *etp)
         5,
         true
     );
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
+    {
+        DrawTooltip("The maximum number of particles created when a particle dies", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+    }
+
 }
 
 void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
@@ -188,9 +241,13 @@ void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
     float controlWidth = screenWidth * 0.375f;
     float verticalSpacing = screenHeight * 0.05f;
 
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Virtual particles parameters");
+    yOffset += verticalSpacing*0.5f;
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Requires Virtual Particles to be enabled");
+
     // Min Virtual Particle Speed
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Virtual Particle Speed");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Minimum Speed");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -202,7 +259,7 @@ void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
 
     // Max Virtual Particle Speed
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Virtual Particle Speed");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Speed");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -214,7 +271,7 @@ void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
 
     // Min Virtual Particle Lifetime
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Virtual Particle Lifetime");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Mininum Lifetime");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -226,7 +283,7 @@ void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
 
     // Max Virtual Particle Lifetime
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Virtual Particle Lifetime");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Maximum Lifetime");
     GuiValueBox(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -238,7 +295,7 @@ void virtualParticlesTab(VirtualParticlesTabParameters *vtp)
 
     // Min Time Between Virtual Pairs
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Min Time Between Virtual Pairs");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Time between virtual particles");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -258,6 +315,10 @@ void physicsTab(PhysicsTabParameters *phtp)
     float labelWidth = screenWidth * 0.25f;
     float controlWidth = screenWidth * 0.375f;
     float verticalSpacing = screenHeight * 0.05f;
+
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Simulation physics parameters");
+    yOffset += verticalSpacing*0.5f;
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.8f, controlHeight}, "relevant forces and constants affecting the particles");
 
     // Gravitational Acceleration (g)
     yOffset += verticalSpacing;

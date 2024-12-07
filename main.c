@@ -68,6 +68,12 @@ int main(void)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(GetScreenWidth(), GetScreenHeight(), "Particle Simulation");
     SetTargetFPS(60);
+    Font customFont = LoadFont("/usr/share/fonts/TTF/UbuntuMonoNerdFont-Regular.ttf");
+    if (customFont.texture.id == 0)
+    {
+        customFont = GetFontDefault();
+    }
+    GuiSetFont(customFont);
 
     Camera2D camera = {0};
     camera.target = (Vector2){GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
@@ -82,7 +88,7 @@ int main(void)
 
     int screenWidth = GetScreenWidth();
     float scaleFactor = (float)screenWidth / 800;
-    int baseFontSize = 10;
+    int baseFontSize = 8;
     int scaledFontSize = (int)(baseFontSize * scaleFactor);
     float gridWidth = ((GetScreenWidth() + CELL_SIZE - 1) / CELL_SIZE);
     float gridHeight = ((GetScreenHeight() + CELL_SIZE - 1) / CELL_SIZE);
