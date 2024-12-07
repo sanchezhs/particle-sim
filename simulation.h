@@ -80,7 +80,7 @@ typedef struct
     Vector2 vortexCenter;
     float vortexStrength;
     float radialStrength;
-    int numVortexParticles;
+    float vortexRadius;
 
     int numGroups;
     Vector2 *groupCenters;
@@ -96,6 +96,7 @@ typedef struct
     bool lifetime;              // Enable/disable particle lifetime
     bool fragmentParticlesLive; // Fragments particles have their own lifetime
     bool virtualParticles;      // Enable virtual particles
+    float friction;             // Simulation friction value for particle's speed
 
     // Particles
     float minParticleLifeTime; // Minimum particle lifetime

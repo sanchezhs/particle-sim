@@ -3,7 +3,7 @@
 
 #include "simulation.h"
 
-#define MAX_TABS 5
+#define MAX_TABS 6
 
 typedef struct
 {
@@ -30,26 +30,33 @@ typedef struct
 
 typedef struct
 {
-    // ParticlePattern initialPattern;
-    // // Vortex Pattern
-    // Vector2 vortexCenter;
-    // FloatValue vortexStrength;
-    // FloatValue radialStrength;
-    // IntValue numVortexParticles;
-
-    // // Group Pattern
-    // IntValue numGroups;
-    // Vector2 *groupCenters;
-    // IntValue particlesPerGroup;
-
     IntValue maxParticles;
     IntValue initialCapacity;
     int seed;
     BoolValue lifetime;
     BoolValue fragmentParticlesLive;
     BoolValue virtualParticles;
+    FloatValue friction;
 
 } GeneralTabParameters;
+
+typedef struct
+{
+    ParticlePattern *initialPattern;
+
+    bool dropDownOpen;
+
+    // Vortex Pattern
+    Vector2 *vortexCenter;
+    FloatValue vortexStrength;
+    FloatValue radialStrength;
+    FloatValue vortexRadious;
+
+    // Group Pattern
+    IntValue numGroups;
+    Vector2 *groupCenters;
+    IntValue particlesPerGroup;
+} PatternsTabParameters;
 
 typedef struct
 {
@@ -88,8 +95,8 @@ typedef struct {
     bool dropDownOpen;
 } PhysicsTabParameters;
 
-// void generalTab(int *maxParticles, int *initialCapacity, int *seed, bool *lifetime, bool *fragmentParticlesLive, bool *virtualParticles);
 void generalTab(GeneralTabParameters *gtp);
+void patternsTab(PatternsTabParameters *ptp, int simulationWidth, int simulationHeight);
 void particlesTab(ParticlesTabParameters *particlesTabParameters);
 void explosionTab(ExplosionTabParameters *etp);
 void virtualParticlesTab(VirtualParticlesTabParameters *vtp);

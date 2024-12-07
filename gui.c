@@ -24,7 +24,6 @@ void DrawTooltip(const char *tooltipText, Rectangle bounds)
                 tooltipText);
 }
 
-
 void generalTab(GeneralTabParameters *gtp)
 {
     float screenWidth = (float)GetScreenWidth();
@@ -49,6 +48,14 @@ void generalTab(GeneralTabParameters *gtp)
     yOffset += verticalSpacing;
     GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Initial Particles");
     GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, gtp->initialCapacity.value, 0, 10000, true);
+
+    yOffset += verticalSpacing;
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Friction");
+    GuiValueBoxFloat((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, gtp->friction.textValue, gtp->friction.value);
+    if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
+    {
+        DrawTooltip("Particle's speed can increase, decrease or stay the same", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+    }
 
     yOffset += verticalSpacing;
     if (GuiButton((Rectangle){xOffset, yOffset, labelWidth * 0.75f, controlHeight}, "Set Seed"))
@@ -88,6 +95,65 @@ void generalTab(GeneralTabParameters *gtp)
     {
         DrawTooltip("Enable if pairs of virtual particles can be generated", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
     }
+}
+
+void patternsTab(PatternsTabParameters *pstp, int simulationWidth, int simulationHeight)
+{
+    float screenWidth = (float)GetScreenWidth();
+    float screenHeight = (float)GetScreenHeight();
+
+    float xOffset = screenWidth * 0.05f;
+    float yOffset = screenHeight * 0.1f;
+    float controlHeight = screenHeight * 0.03f;
+    float labelWidth = screenWidth * 0.25f;
+    float controlWidth = screenWidth * 0.375f;
+    float verticalSpacing = screenHeight * 0.05f;
+
+    // Description
+    GuiLabel((Rectangle){xOffset, yOffset, screenWidth * 0.5f, controlHeight}, "Particle pattern parameters");
+    GuiLabel((Rectangle){xOffset, yOffset += (verticalSpacing*0.5f), screenWidth * 0.85f, controlHeight}, "Controls how particles are initially placed and how they move afterwards");
+
+    // Initial Pattern
+    yOffset += verticalSpacing;
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Pattern");
+    if (GuiDropdownBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight},
+                       "Random;Vortex;Group", (int *)pstp->initialPattern, pstp->dropDownOpen))
+    {
+        pstp->dropDownOpen = !pstp->dropDownOpen;
+    }
+
+    // Vortex Center
+    // TODO
+
+    // Vortex Strength
+    yOffset += verticalSpacing;
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Vortex Strength");
+    GuiValueBoxFloat(
+        (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight},
+        NULL,
+        pstp->vortexStrength.textValue,
+        pstp->vortexStrength.value
+    );
+
+    // Radial Strength
+    yOffset += verticalSpacing;
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Vortex Radial Strength");
+    GuiValueBoxFloat(
+        (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight},
+        NULL,
+        pstp->radialStrength.textValue,
+        pstp->radialStrength.value
+    );
+
+    // Vortex radius
+    yOffset += verticalSpacing;
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Vortex Radius");
+    GuiValueBoxFloat(
+        (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight},
+        NULL,
+        pstp->vortexRadious.textValue,
+        pstp->vortexRadious.value
+    );
 }
 
 void particlesTab(ParticlesTabParameters *ptp)
@@ -342,7 +408,7 @@ void physicsTab(PhysicsTabParameters *phtp)
 
     // Max Gravity Distance
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Gravity Distance:");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Max Gravity Distance");
     GuiValueBoxFloat(
         (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, 
         NULL, 
@@ -372,7 +438,7 @@ void physicsTab(PhysicsTabParameters *phtp)
 
     // Gravity Type
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Gravity Type:");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Gravity Type");
     if (GuiDropdownBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight},
                        "None;Center;Down;Up;Left;Right", (int *)phtp->gravityType, phtp->dropDownOpen))
     {
@@ -381,6 +447,6 @@ void physicsTab(PhysicsTabParameters *phtp)
 
     // Enable Electric Force
     yOffset += verticalSpacing;
-    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Electric Force:");
+    GuiLabel((Rectangle){xOffset, yOffset, labelWidth, controlHeight}, "Electric Force");
     GuiCheckBox((Rectangle){xOffset + labelWidth, yOffset, controlHeight, controlHeight}, NULL, phtp->electricForce.value);
 }

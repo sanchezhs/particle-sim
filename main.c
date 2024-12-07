@@ -6,7 +6,7 @@
 #define SIMULATION_WIDTH  2500
 #define SIMULATION_HEIGHT 2500
 
-void initGuiParamaters(SimulationConfig *config, GeneralTabParameters *gpt, ParticlesTabParameters *ptp, ExplosionTabParameters *etp, VirtualParticlesTabParameters *vtp, PhysicsTabParameters *phtp) {
+void initGuiParamaters(SimulationConfig *config, GeneralTabParameters *gpt, PatternsTabParameters *pstb, ParticlesTabParameters *ptp, ExplosionTabParameters *etp, VirtualParticlesTabParameters *vtp, PhysicsTabParameters *phtp) {
     // General Tab parameters
     gpt->maxParticles.value = &config->maxParticles;
     gpt->initialCapacity.value = &config->initialCapacity;
@@ -14,7 +14,25 @@ void initGuiParamaters(SimulationConfig *config, GeneralTabParameters *gpt, Part
     gpt->lifetime.value = &config->lifetime;
     gpt->fragmentParticlesLive.value = &config->fragmentParticlesLive;
     gpt->virtualParticles.value = &config->virtualParticles;
+    gpt->friction.value = &config->friction;
+
+    snprintf(gpt->friction.textValue, sizeof(gpt->friction.textValue), "%.2f", *(gpt->friction.value));
     
+    // Patterns Tab parameters
+    pstb->dropDownOpen = false;
+    pstb->initialPattern = &config->initialPattern;
+    pstb->vortexCenter = &config->vortexCenter;
+    pstb->vortexStrength.value = &config->vortexStrength;
+    pstb->radialStrength.value = &config->radialStrength;
+    pstb->vortexRadious.value = &config->vortexRadius;
+    pstb->numGroups.value = &config->numGroups;
+    pstb->groupCenters = config->groupCenters;
+    pstb->particlesPerGroup.value = &config->particlesPerGroup;
+
+    snprintf(pstb->vortexStrength.textValue, sizeof(pstb->vortexStrength.textValue), "%.2f", *(pstb->vortexStrength.value));
+    snprintf(pstb->vortexRadious.textValue, sizeof(pstb->vortexRadious.textValue), "%.2f", *(pstb->vortexRadious.value));
+    snprintf(pstb->radialStrength.textValue, sizeof(pstb->radialStrength.textValue), "%.2f", *(pstb->radialStrength.value));
+
     // Particle Tab parameters
     ptp->maxParticleLifeTime.value = &config->maxParticleLifeTime;
     ptp->minParticleLifeTime.value = &config->minParticleLifeTime;
@@ -84,7 +102,6 @@ int main(void)
 
     bool showConfigPanel = false;
     bool paused = false;
-    bool boot = true;
 
     int screenWidth = GetScreenWidth();
     float scaleFactor = (float)screenWidth / 800;
@@ -106,13 +123,12 @@ int main(void)
     Vector2 blackHoleCenter = (Vector2){SIMULATION_WIDTH / 2.0f, SIMULATION_HEIGHT / 2.0f};
 
     SimulationConfig config = {
-
         // Particle initialization pattern
         .initialPattern = PATTERN_RANDOM,
         .vortexCenter = (Vector2){SIMULATION_WIDTH / 2.0f, SIMULATION_HEIGHT / 2.0f},
         .vortexStrength = 5.0f,
         .radialStrength = 50.0f,
-        .numVortexParticles = 500,
+        .vortexRadius  = 150.0f,
 
         .numGroups = 3,
         .groupCenters = groupCenters,
@@ -128,6 +144,7 @@ int main(void)
         .lifetime = false,
         .fragmentParticlesLive = false,
         .virtualParticles = false,
+        .friction = 1,
 
         // PARTICLES
         .minParticleLifeTime = 50,
@@ -165,22 +182,19 @@ int main(void)
     };
 
     GeneralTabParameters gtp = {0};
+    PatternsTabParameters pstp = {0};
     ParticlesTabParameters ptp = {0};
     ExplosionTabParameters etp = {0};
     VirtualParticlesTabParameters vtp = {0};
     PhysicsTabParameters phtp = {0};
-    initGuiParamaters(&config, &gtp, &ptp, &etp, &vtp, &phtp);
+    initGuiParamaters(&config, &gtp, &pstp, &ptp, &etp, &vtp, &phtp);
 
     Shader glowShader = LoadShader(0, "glow.fs");
 
     RenderTexture2D target = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
     RenderTexture2D simulationTexture = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
 
-    bool dropDownOpen = true;
-    const char *tabTexts[MAX_TABS] = {"General", "Particles", "Explosions", "Virtual Particles", "Physics"};
-
-    int xOffset = GetScreenWidth() * 0.02;
-    int yOffset = GetScreenHeight() * 0.02;
+    const char *tabTexts[MAX_TABS] = {"General", "Patterns", "Particles", "Explosions", "Virtual Particles", "Physics"};
 
     int buttonWidth = GetScreenWidth() * 0.05;
     int buttonHeight = GetScreenHeight() * 0.025;
@@ -344,9 +358,10 @@ int main(void)
                 }
             }
                 Rectangle simBounds = {0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT};
-                DrawRectangleLines(0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT, boundaryColor);
-                int lineThickness = 3;
-                DrawRectangleLinesEx(simBounds, lineThickness, boundaryColor);
+                int lineThickness = 1;
+                Color fillColor = Fade(BLACK, 0.1f);
+                DrawRectangleRec(simBounds, fillColor);
+                DrawRectangleLinesEx(simBounds, lineThickness, BLACK);
             }
         EndTextureMode();
 
@@ -366,8 +381,8 @@ int main(void)
         
             // Show current zoom level
             char zoomText[50];
-            snprintf(zoomText, sizeof(zoomText), "Zoom: %.2fx", camera.zoom);
-            GuiLabel((Rectangle){GetScreenWidth() - 150, 10, 140, 30}, zoomText);
+            snprintf(zoomText, sizeof(zoomText), "%.2fx", camera.zoom);
+            GuiLabel((Rectangle){GetScreenWidth() - 90, 10, 140, 30}, zoomText);
 
             // Show particle count
             char particleText[50];
@@ -405,15 +420,18 @@ int main(void)
                 generalTab(&gtp);
                 break;
                 case 1:
-                particlesTab(&ptp);
+                patternsTab(&pstp, SIMULATION_WIDTH, SIMULATION_HEIGHT);
                 break;
                 case 2:
-                explosionTab(&etp);
+                particlesTab(&ptp);
                 break;
                 case 3:
-                virtualParticlesTab(&vtp);
+                explosionTab(&etp);
                 break;
                 case 4:
+                virtualParticlesTab(&vtp);
+                break;
+                case 5:
                 physicsTab(&phtp);
                 break;
                 default:
@@ -421,7 +439,7 @@ int main(void)
             }
 
             // Add a button to close the configuration menu
-            Rectangle closeBtnRect = {GetScreenWidth() - 120, GetScreenHeight() * 0.05f + 10, 100, 50};
+            Rectangle closeBtnRect = {GetScreenWidth() / 2, GetScreenHeight() - 100, 100, 50};
             if (GuiButton(closeBtnRect, "Close"))
             {
                 showConfigPanel = false;
