@@ -337,7 +337,7 @@
 #define RAYGUI_VERSION  "4.5-dev"
 
 #if !defined(RAYGUI_STANDALONE)
-    #include "./raylib/src/raylib.h"
+    #include "./external/raylib/src/raylib.h"
 #endif
 
 // Function specifiers in case library is build/used as a shared library (Windows)

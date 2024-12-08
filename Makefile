@@ -5,7 +5,7 @@ EMCC = emcc
 
 SOURCES = main.c gui.c simulation.c cJSON.c
 
-ifeq ($(PLATFORM), WEB)
+ifeq ($(PLATFORM), PLATFORM_WEB)
     BUILD_WEB_ASYNCIFY    ?= FALSE
     BUILD_WEB_HEAP_SIZE   ?= 128MB
     BUILD_WEB_STACK_SIZE  ?= 1MB
@@ -14,11 +14,11 @@ ifeq ($(PLATFORM), WEB)
 
     CC = $(EMCC)
     CFLAGS = -Wall -Wextra -pedantic -std=c99 -g \
-             -I./raylib/src \
-             -I./raylib/src/external \
-             -I./raylib/src/libraylib.a \
+             -I./external/raylib/src \
+             -I./external/raylib/src/external \
+             -I./external/raylib/src/libraylib.a \
              -I~/emsdk/upstream/emscripten/system/include
-    LDFLAGS = -L./raylib/src -lraylib \
+    LDFLAGS = -L./external/raylib/src -lraylib \
               -s ASSERTIONS=1 \
               -s USE_GLFW=3 \
               --profiling \

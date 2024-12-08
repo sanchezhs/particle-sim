@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <math.h>
-// #include <raylib.h>
-#include "./raylib/src/raylib.h"
+#include "./external/raylib/src/raylib.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>

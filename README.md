@@ -36,7 +36,7 @@ make
 
 - For web
 ```bash
-make PLATFORM=WEB
+make PLATFORM=PLATFORM_WEB
 ```
 
 4. Run the simulator
