@@ -1,86 +1,188 @@
-# particle-sim
-Particle "simulator" made just for fun. While it's not a scientifically accurate simulation, it provides an engaging and interactive way to explore how particles behave under various settings.
+# ParticleSim
 
-This project is written in C, utilizing the Raylib library for graphics and the Raygui library for GUI controls.
+![GitHub License](https://img.shields.io/github/license/sanchezhs/particle-sim)
 
-# Features
-- Dynamic Particle Simulation: Watch particles interact with customizable properties like speed, mass, and lifetime.
-- Explosions: Simulate particle explosions with adjustable parameters.
-- Virtual Particles: Add virtual particle interactions and experiment with unique configurations.
-- Physics Customization: Adjust forces, gravity, and other physics settings.
-- Interactive GUI: Configure the simulation in real-time using a clean and intuitive settings panel.
+**ParticleSim** is a particle simulator developed in C, leveraging the power of the [Raylib](https://www.raylib.com/) graphics library and the [raygui](https://github.com/raysan5/raygui) library for intuitive GUI controls. Compiled to WebAssembly using **Emscripten**, ParticleSim offers both desktop and web-based interfaces, allowing users to explore and manipulate particle behaviors interactively.
 
-# Dependencies
-- [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) (to compile to WebAssembly)
-- [Raylib](https://www.raylib.com/) (graphics library)
-- [Ragui](https://github.com/raygui) (graphics library)
-- [cJSON](https://github.com/DaveGamble/cJSON) (JSON in C)
+While not intended as a scientifically precise simulation, ParticleSim provides a rich and engaging platform for experimenting with particle dynamics, physics customization, and visual effects, making it an excellent tool for educational purposes, demonstrations, and creative explorations.
 
+## Table of Contents
 
-# Installation
-1. Clone the repository
-```bash
-git clone https://github.com/sanchezhs/particle-sim.git
-```
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Steps](#steps)
+- [Usage](#usage)
+  - [Simulation Mode](#simulation-mode)
+  - [Settings Panel](#settings-panel)
+- [Live Demo](#live-demo)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
-2. Navigate to the project directory
-```bash
-cd particle-sim
-```
+## Features
 
-3. Compile the program
-- For Linux (desktop)
-```bash
-make
-```
+- **Dynamic Particle Simulation:** Observe particles interacting with customizable attributes such as speed, mass, and lifetime. Adjust these properties in real-time to see immediate effects on the simulation.
 
-- For web
-```bash
-make PLATFORM=PLATFORM_WEB
-```
+- **Explosions:** Create and manage particle explosions with adjustable parameters, enabling the simulation of dynamic and visually appealing events.
 
-4. Run the simulator
-- If you compiled the desktop version
-```bash
-./simulation
-```
+- **Virtual Particles:** Introduce virtual particle interactions, allowing for complex configurations and unique behaviors within the simulation environment.
 
-- If you compiled the web version open simulation.html with the browser
+- **Physics Customization:** Fine-tune physical forces, gravity settings, and other physics-related parameters to explore various scenarios and their impacts on particle movements.
 
+- **Interactive GUI:** Utilize a clean and intuitive settings panel powered by raygui, enabling seamless configuration of simulation parameters without interrupting the simulation flow.
 
-# Usage
+- **WebAssembly Support:** Compile the simulation to WebAssembly using Emscripten, making ParticleSim accessible directly from modern web browsers without the need for additional installations.
 
-The simulator has two primary modes:
-- Simulation Mode: Watch the particles move and interact based on the configured settings.
-- Settings Panel: Pause the simulation and adjust various settings to tweak particle behavior and physical properties.
+## Technologies Used
 
-Interactivity
-- Pause/Resume: Temporarily pause the simulation to adjust parameters or observe a static frame.
-- Reset: Restart the simulation with the current settings.
-- Settings: Access detailed customization options for particles, physics, and explosions.
+- [**C**](https://www.iso.org/standard/74528.html): The core programming language used for developing ParticleSim, offering performance and control over system resources.
 
-Experiment with different configurations and observe how particles behave in various scenarios.
+- [**Raylib**](https://www.raylib.com/): A simple and easy-to-use library to enjoy videogames programming, providing robust graphics capabilities for rendering particles and effects.
 
-# Examples
-![fullGif](./examples/example1.gif)
+- [**raygui**](https://github.com/raysan5/raygui): A simple and easy-to-use immediate-mode GUI library based on Raylib, facilitating the creation of interactive and customizable GUI elements.
 
-Full program
-![full](./examples/full.png)
+- [**cJSON**](https://github.com/DaveGamble/cJSON): A lightweight JSON parser in C, enabling efficient parsing and handling of configuration data in JSON format.
 
-Particle settings
-![particles](./examples/particles.png)
+- [**Emscripten**](https://emscripten.org/): A complete compiler toolchain that allows compiling C code into WebAssembly, bridging the gap between native applications and web technologies.
 
-Particle explosions settings
-![explosions](./examples/explosions.png)
+## Installation
 
-Virtual particle settings
-![virtual](./examples/virtual.png)
+### Prerequisites
 
-General settings relative to physics
-![physics](./examples/physics.png)
+Before you begin, ensure you have met the following requirements:
 
-# Known Issues (TODO)
-- Segmentation Faults: Some settings combinations may lead to segmentation faults.
-- Screenshots.
-- Individual particle stats.
-- Random initial state and allow user to save it.
+- **Compiler:** GCC or Clang for compiling C code.
+- **Emscripten:** Required for compiling to WebAssembly.
+- **Make:** A build automation tool for managing compilation steps.
+- **Git:** For cloning the repository and managing submodules.
+
+### Steps
+
+1. **Clone the Repository:**
+
+    ```bash
+    git clone https://github.com/sanchezhs/particle-sim.git
+    cd particle-sim
+    ```
+
+2. **Initialize and Update Submodules:**
+
+    ParticleSim uses Git submodules to manage external dependencies like Raylib. Initialize and update them with:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+
+3. **Install Dependencies:**
+
+    - **Raylib:** Ensure Raylib is properly installed and its path is correctly set in your environment.
+    - **Emscripten:** Follow the [Emscripten Getting Started Guide](https://emscripten.org/docs/getting_started/downloads.html) to install and activate Emscripten.
+
+4. **Compile the Program:**
+
+    - **For Desktop (Linux/macOS):**
+
+        ```bash
+        make
+        ```
+
+    - **For Web (WebAssembly):**
+
+        ```bash
+        make PLATFORM=PLATFORM_WEB
+        ```
+
+5. **Run the Simulator:**
+
+    - **Desktop Version:**
+
+        ```bash
+        ./simulation
+        ```
+
+    - **Web Version:**
+
+        Open `simulation.html` in your preferred web browser. For a better experience, serve the files using a local web server:
+
+        ```bash
+        python3 -m http.server
+        ```
+
+        Then navigate to `http://localhost:8000/simulation.html` in your browser.
+
+## Usage
+
+ParticleSim offers an interactive environment where users can observe and manipulate particle behaviors in real-time. The application is divided into two primary modes:
+
+### Simulation Mode
+
+- **Overview:** Watch particles move and interact based on the current configuration settings.
+- **Interactions:** Observe how changes in particle properties and physics settings influence the simulation dynamics.
+
+### Settings Panel
+
+- **Access:** Click on the "Settings" button to open the configuration panel.
+- **Configuration Options:**
+  - **General Settings:** Adjust global parameters like the number of particles, friction, and simulation seed.
+  - **Patterns:** Choose initial particle distribution patterns such as random, vortex, or group formations.
+  - **Particles:** Customize particle-specific properties including lifetime, speed, mass, and trail length.
+  - **Explosion:** Configure parameters for particle explosions, such as the number of particles involved.
+  - **Physics:** Modify physical forces, gravity types, and enable or disable electric forces.
+
+### Interactivity
+
+- **Pause/Resume:** Temporarily halt the simulation to adjust settings or analyze a static frame.
+- **Reset:** Restart the simulation with the current configuration parameters.
+- **Apply Configuration:** Commit your changes in the settings panel to update the simulation in real-time.
+
+Experiment with various configurations to explore different particle behaviors and physical interactions.
+
+## Live Demo
+
+Experience ParticleSim directly from your browser without any installations:
+
+[https://sanchezhs.github.io/particle-simulation/](https://sanchezhs.github.io/particle-simulation/)
+
+## Examples
+
+Explore some of the captivating simulations created with ParticleSim:
+
+### Full Program
+
+![Full Program](./examples/full.png)
+
+### Dynamic Particle Settings
+
+![Particles](./examples/particles.png)
+
+### Particle Explosions
+
+![Explosions](./examples/explosions.png)
+
+### Virtual Particle Interactions
+
+![Virtual Particles](./examples/virtual.png)
+
+### Physics Customizations
+
+![Physics](./examples/physics.png)
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Acknowledgements
+
+- [Raylib](https://www.raylib.com/)
+- [raygui](https://github.com/raysan5/raygui)
+- [cJSON](https://github.com/DaveGamble/cJSON)
+- [Emscripten](https://emscripten.org/)
+
+# TODO
+- **Responsive Design**
+- **Screenshots**
+- **Live particle stats**
+- **Create random initial states and allow user to save them**
