@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <math.h>
-#include <raylib.h>
+// #include <raylib.h>
+#include "./raylib/src/raylib.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -21,14 +22,14 @@ float GetRandomFloat(float min, float max)
     return min + (max - min) * GetRandomValue(0, 10000) / 10000.0f;
 }
 
-float Vector2Length(Vector2 v)
+float PSVector2Length(Vector2 v)
 {
     return sqrtf(v.x * v.x + v.y * v.y);
 }
 
-Vector2 Vector2Normalize(Vector2 v)
+Vector2 PSVector2Normalize(Vector2 v)
 {
-    float length = Vector2Length(v);
+    float length = PSVector2Length(v);
     Vector2 normalized = {0.0f, 0.0f};
     if (length != 0.0f)
     {
@@ -38,30 +39,30 @@ Vector2 Vector2Normalize(Vector2 v)
     return normalized;
 }
 
-Vector2 Vector2Scale(Vector2 v, float scalar)
+Vector2 PSVector2Scale(Vector2 v, float scalar)
 {
     Vector2 scaled = {v.x * scalar, v.y * scalar};
     return scaled;
 }
 
-Vector2 Vector2Subtract(Vector2 a, Vector2 b)
+Vector2 PSVector2Subtract(Vector2 a, Vector2 b)
 {
     Vector2 result = {a.x - b.x, a.y - b.y};
     return result;
 }
 
-Vector2 Vector2Add(Vector2 a, Vector2 b)
+Vector2 PSVector2Add(Vector2 a, Vector2 b)
 {
     Vector2 result = {a.x + b.x, a.y + b.y};
     return result;
 }
 
-float Vector2DotProduct(Vector2 a, Vector2 b)
+float PSVector2DotProduct(Vector2 a, Vector2 b)
 {
     return (a.x * b.x) + (a.y * b.y);
 }
 
-float Vector2Distance(Vector2 a, Vector2 b)
+float PSVector2Distance(Vector2 a, Vector2 b)
 {
     return sqrtf(powf(b.x - a.x, 2) + powf(b.y - a.y, 2));
 }
@@ -152,7 +153,7 @@ void InitRandomParticles(const SimulationConfig *config, Particles *particles, i
         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
 
         // Vector2 position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)};
-        // while (Vector2Distance(position, voidCenter) < voidRadious)
+        // while (PSVector2Distance(position, voidCenter) < voidRadious)
         // {
         //     position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)};
         // }
@@ -186,7 +187,7 @@ void InitRandomParticles(const SimulationConfig *config, Particles *particles, i
     }
 }
 
-void InitVortexParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void InitVortexParticles(const SimulationConfig *config, Particles *particles)
 {
     for (int i = 0; i < config->initialCapacity; i++)
     {
@@ -232,7 +233,7 @@ void InitVortexParticles(const SimulationConfig *config, Particles *particles, i
     }
 }
 
-void InitGroupParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void InitGroupParticles(const SimulationConfig *config, Particles *particles)
 {
     for (int g = 0; g < config->numGroups && g < config->initialCapacity; g++)
     {
@@ -278,7 +279,7 @@ void InitGroupParticles(const SimulationConfig *config, Particles *particles, in
     }
 }
 
-void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles, int screenWidth)
 {
     for (int i = 0; i < config->initialCapacity; i++)
     {
@@ -296,10 +297,10 @@ void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles
 
         // Velocidad dirigida hacia el agujero negro con una magnitud proporcional a la distancia
         float speed = config->blackHoleMass / (radius * radius + 1.0f); // Ajusta la fórmula según necesidad
-        Vector2 direction = Vector2Subtract(config->blackHoleCenter, position);
-        float distance = Vector2Length(direction);
-        Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
-        Vector2 velocity = Vector2Scale(dirNormalized, speed);
+        Vector2 direction = PSVector2Subtract(config->blackHoleCenter, position);
+        float distance = PSVector2Length(direction);
+        Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
+        Vector2 velocity = PSVector2Scale(dirNormalized, speed);
 
         Particle p = (Particle){
             .id = globalParticleID++,
@@ -336,15 +337,15 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
         break;
 
     case PATTERN_VORTEX:
-        InitVortexParticles(config, particles, screenWidth, screenHeight);
+        InitVortexParticles(config, particles);
         break;
 
     case PATTERN_GROUP:
-        InitGroupParticles(config, particles, screenWidth, screenHeight);
+        InitGroupParticles(config, particles);
         break;
 
     case PATTERN_BLACKHOLE:
-        InitBlackHoleParticles(config, particles, screenWidth, screenHeight);
+        InitBlackHoleParticles(config, particles, screenWidth);
         break;
 
     default:
@@ -611,7 +612,7 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
         Particle *p = &particles->items[i];
 
         if (config->friction != 1) {
-            p->velocity = Vector2Scale(p->velocity, config->friction);
+            p->velocity = PSVector2Scale(p->velocity, config->friction);
         }
 
         // Screen limits control
@@ -666,17 +667,17 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
 
             if (distance > 0)
             {
-                Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
+                Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
 
                 // Tangent force
                 Vector2 tangential = (Vector2){dirNormalized.y, -dirNormalized.x};
 
                 Vector2 tangentialForce = (Vector2){tangential.x * config->vortexStrength / (distance + 1.0f), tangential.y * config->vortexStrength / (distance + 1.0f)};
-                p->velocity = Vector2Add(p->velocity, tangentialForce);
+                p->velocity = PSVector2Add(p->velocity, tangentialForce);
 
                 // Radial force
                 Vector2 radialForce = (Vector2){dirNormalized.x * config->radialStrength / (distance + 1.0f), dirNormalized.y * config->radialStrength / (distance + 1.0f)};
-                p->velocity = Vector2Add(p->velocity, radialForce);
+                p->velocity = PSVector2Add(p->velocity, radialForce);
             }
         }
         break;
@@ -684,16 +685,16 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
             break;
         case PATTERN_BLACKHOLE:
         {
-            Vector2 direction = Vector2Subtract(config->blackHoleCenter, p->position);
-            float distance = Vector2Length(direction);
+            Vector2 direction = PSVector2Subtract(config->blackHoleCenter, p->position);
+            float distance = PSVector2Length(direction);
 
             if (distance > 0)
             {
-                Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
+                Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
 
                 float gravitationalForce = (config->blackHoleMass) / (distance * distance + 1.0f);
-                Vector2 gravityForce = Vector2Scale(dirNormalized, gravitationalForce);
-                p->velocity = Vector2Add(p->velocity, Vector2Scale(gravityForce, GetFrameTime()));
+                Vector2 gravityForce = PSVector2Scale(dirNormalized, gravitationalForce);
+                p->velocity = PSVector2Add(p->velocity, PSVector2Scale(gravityForce, GetFrameTime()));
 
                 // Particle enters event horizon
                 if (distance <= config->blackHoleRadius)

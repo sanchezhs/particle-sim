@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Raylib Simulation</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .btnContainer {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            position: absolute;
+            margin: 10px;
+            gap: 10px;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #555;
+        }
+
+        .apply-btn {
+            padding: 10px 15px;
+            background-color: #686f2a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .apply-btn:hover {
+            background-color: #8a932f;
+        }
+
+        .apply-btn-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .tab-container {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            right: 10px;
+            z-index: 2;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            color: white;
+            padding: 10px 20px;
+            background-color: #333;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .tab.active {
+            background-color: #007BFF;
+            color: white;
+            border-color: #007BFF;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 5px 5px 5px 5px;
+            color: white;
+            max-width: 100%;
+            overflow-y: auto;
+            max-height: 80vh;
+            border: solid;
+            border-color: lightblue;
+            border-width: 1px 1px 1px 1px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="number"],
+        input[type="checkbox"],
+        select,
+        button {
+            padding: 10px;
+            margin-right: 10px;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .tabs::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .tabs::-webkit-scrollbar-track {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .tabs::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 3px;
+        }
+
+        .tabs::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+
+        @media (max-width: 600px) {
+            .tab {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .tab-container {
+                top: 50px;
+            }
+
+            .control-group label {
+                width: 150px;
+            }
+        }
+
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 45%;
+        }
+
+        .control-group label {
+            width: 200px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .control-group button {
+            width: 200px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+
+
+        .control-group input[type="number"],
+        .control-group select {
+            flex: 1;
+            padding: 10px;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .control-group input[type="number"]:focus,
+        .control-group select:focus {
+            outline: none;
+            background-color: #666;
+        }
+
+        .control-group button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+
+        .control-group button:hover {
+            background-color: #0056b3;
+        }
+
+        .control-group.checkbox-group {
+            justify-content: flex-start;
+        }
+
+        .control-group.checkbox-group label {
+            text-align: left;
+            width: auto;
+            margin-left: 5px;
+        }
+
+        .control-group.checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        #modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            display: none;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            text-align: center;
+            width: 300px;
+        }
+
+        #modal h2 {
+            margin: 0;
+            margin-bottom: 10px;
+        }
+
+        #modal p {
+            margin: 0;
+            margin-bottom: 20px;
+        }
+
+        #modal button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #modal button:hover {
+            background-color: #0056b3;
+        }
+
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="modalOverlay"></div>
+
+    <div id="modal">
+        <h2>Configuration Applied</h2>
+        <p>Reset the simulation to see the changes.</p>
+        <button id="closeModal">Close</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div class="gridContainer">
+        <div class="btnContainer">
+            <button id="btnPause" class="btn">Pause</button>
+            <button id="btnContinue" class="btn">Continue</button>
+            <button id="btnReset" class="btn">Reset</button>
+            <button id="btnSettings" class="btn">Settings</button>
+        </div>
+        <div id="tabContainer" class="tab-container">
+            <div class="tabs">
+                <div class="tab active" data-tab="general">General</div>
+                <div class="tab" data-tab="patterns">Patterns</div>
+                <div class="tab" data-tab="particles">Particles</div>
+                <div class="tab" data-tab="explosion">Explosion</div>
+                <div class="tab" data-tab="physics">Physics</div>
+            </div>
+
+            <div id="general" class="tab-content active">
+                <div class="control-group">
+                    <label for="maxParticles">Maximum Particles</label>
+                    <input type="number" id="maxParticles" min="0" max="10000" value="1000">
+                </div>
+                <div class="control-group">
+                    <label for="initialParticles">Initial Particles</label>
+                    <input type="number" id="initialParticles" min="0" max="10000" value="500">
+                </div>
+                <div class="control-group">
+                    <label for="friction">Friction</label>
+                    <input type="number" id="friction" step="0.01" value="0.5">
+                </div>
+                <div class="control-group">
+                    <button id="setSeed">Set Seed</button>
+                    <input type="number" id="seedValue" min="0" max="10000" value="42">
+                </div>
+                <div class="control-group">
+                    <label for="particlesDie">Particles Die</label>
+                    <input type="checkbox" id="particlesDie">
+                </div>
+                <div class="apply-btn-container">
+                    <button id="applyConfig" class="apply-btn">Apply Configuration</button>
+                </div>
+            </div>
+
+            <div id="patterns" class="tab-content">
+                <div class="control-group">
+                    <label for="initialPattern">Initial Pattern</label>
+                    <select id="initialPattern">
+                        <option value="random">Random</option>
+                        <option value="vortex">Vortex</option>
+                        <option value="group">Group</option>
+                    </select>
+                </div>
+                <div class="control-group checkbox-group">
+                    <input type="checkbox" id="patternsDropDownOpen">
+                    <label for="patternsDropDownOpen">Drop Down Open</label>
+                </div>
+
+                <!-- Vortex Pattern Controls -->
+                <div class="control-group">
+                    <label>Vortex Center X</label>
+                    <input type="number" id="vortexCenterX" step="0.1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Vortex Center Y</label>
+                    <input type="number" id="vortexCenterY" step="0.1" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="vortexStrength">Vortex Strength</label>
+                    <input type="number" id="vortexStrength" step="0.1" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label for="radialStrength">Radial Strength</label>
+                    <input type="number" id="radialStrength" step="0.1" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label for="vortexRadius">Vortex Radius</label>
+                    <input type="number" id="vortexRadius" step="0.1" value="100">
+                </div>
+
+                <!-- Group Pattern Controls -->
+                <div class="control-group">
+                    <label for="numGroups">Number of Groups</label>
+                    <input type="number" id="numGroups" min="1" max="100" value="5">
+                </div>
+                <div class="control-group">
+                    <label>Group Center 1 X</label>
+                    <input type="number" id="groupCenter1X" step="0.1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Group Center 1 Y</label>
+                    <input type="number" id="groupCenter1Y" step="0.1" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="particlesPerGroup">Particles per Group</label>
+                    <input type="number" id="particlesPerGroup" min="1" max="10000" value="100">
+                </div>
+            </div>
+
+            <div id="particles" class="tab-content">
+                <div class="control-group">
+                    <label for="minParticleLifeTime">Minimum Particle Lifetime</label>
+                    <input type="number" id="minParticleLifeTime" step="0.1" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label for="maxParticleLifeTime">Maximum Particle Lifetime</label>
+                    <input type="number" id="maxParticleLifeTime" step="0.1" value="5.0">
+                </div>
+                <div class="control-group">
+                    <label for="minParticleSpeed">Minimum Particle Speed</label>
+                    <input type="number" id="minParticleSpeed" step="0.1" value="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="maxParticleSpeed">Maximum Particle Speed</label>
+                    <input type="number" id="maxParticleSpeed" step="0.1" value="2.0">
+                </div>
+                <div class="control-group">
+                    <label for="minParticleMass">Minimum Particle Mass</label>
+                    <input type="number" id="minParticleMass" step="0.1" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label for="maxParticleMass">Maximum Particle Mass</label>
+                    <input type="number" id="maxParticleMass" step="0.1" value="5.0">
+                </div>
+                <div class="control-group">
+                    <label for="trailLength">Trail Length</label>
+                    <input type="number" id="trailLength" min="0" max="1000" value="50">
+                </div>
+            </div>
+
+            <div id="explosion" class="tab-content">
+                <div class="control-group">
+                    <label for="minExplosionParticles">Minimum Explosion Particles</label>
+                    <input type="number" id="minExplosionParticles" min="0" max="10000" value="100">
+                </div>
+                <div class="control-group">
+                    <label for="maxExplosionParticles">Maximum Explosion Particles</label>
+                    <input type="number" id="maxExplosionParticles" min="0" max="10000" value="500">
+                </div>
+            </div>
+
+            <div id="physics" class="tab-content">
+                <div class="control-group">
+                    <label for="gravityG">Gravity (g)</label>
+                    <input type="number" id="gravityG" step="0.1" value="9.81">
+                </div>
+                <div class="control-group">
+                    <label for="gravityUniversal">Universal Gravity (G)</label>
+                    <input type="number" id="gravityUniversal" step="0.001" value="6.674e-11">
+                </div>
+                <div class="control-group">
+                    <label for="maxGravityDistance">Maximum Gravity Distance</label>
+                    <input type="number" id="maxGravityDistance" step="1" value="1000">
+                </div>
+                <div class="control-group">
+                    <label for="maxForce">Maximum Force</label>
+                    <input type="number" id="maxForce" step="0.1" value="100">
+                </div>
+                <div class="control-group">
+                    <label for="kElectric">Electric Constant (k)</label>
+                    <input type="number" id="kElectric" step="0.1" value="8.99e9">
+                </div>
+                <div class="control-group">
+                    <label for="gravityType">Gravity Type</label>
+                    <select id="gravityType">
+                        <option value="none">None</option>
+                        <option value="center">Center</option>
+                        <option value="down">Down</option>
+                        <option value="up">Up</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+                <div class="control-group checkbox-group">
+                    <input type="checkbox" id="electricForce">
+                    <label for="electricForce">Electric Force</label>
+                </div>
+                <div class="control-group checkbox-group">
+                    <input type="checkbox" id="physicsDropDownOpen">
+                    <label for="physicsDropDownOpen">Drop Down Open</label>
+                </div>
+            </div>
+
+            <div id="virtualParticles" class="tab-content">
+                <div class="control-group">
+                    <label for="minVirtualParticleSpeed">Minimum Virtual Particle Speed</label>
+                    <input type="number" id="minVirtualParticleSpeed" step="1" value="10">
+                </div>
+                <div class="control-group">
+                    <label for="maxVirtualParticleSpeed">Maximum Virtual Particle Speed</label>
+                    <input type="number" id="maxVirtualParticleSpeed" step="1" value="50">
+                </div>
+                <div class="control-group">
+                    <label for="minVirtualParticleLifeTime">Minimum Virtual Particle Lifetime</label>
+                    <input type="number" id="minVirtualParticleLifeTime" step="1" value="2">
+                </div>
+                <div class="control-group">
+                    <label for="maxVirtualParticleLifeTime">Maximum Virtual Particle Lifetime</label>
+                    <input type="number" id="maxVirtualParticleLifeTime" step="1" value="10">
+                </div>
+                <div class="control-group">
+                    <label for="minTimeBetweenVirtualPairs">Minimum Time Between Virtual Pairs</label>
+                    <input type="number" id="minTimeBetweenVirtualPairs" step="0.1" value="1.5">
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="simulation.js"></script>
+    <script>
+        const config = {
+            // General
+            maxParticles: 1000,
+            initialParticles: 500,
+            friction: 1,
+            setSeed: 42,
+            particlesDie: false,
+
+            // Patterns
+            initialPattern: 'random',
+            dropDownOpen: false,
+            vortexCenter: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+            vortexStrength: 5.0,
+            radialStrength: 50.0,
+            vortexRadius: 150.0,
+            numGroups: 3,
+            groupCenters: [
+                { x: window.innerWidth * 0.25, y: window.innerHeight * 0.25 },
+                { x: window.innerWidth * 0.75, y: window.innerHeight * 0.25 },
+                { x: window.innerWidth * 0.5, y: window.innerHeight * 0.75 }
+            ],
+            particlesPerGroup: 150,
+
+            // Particles
+            minParticleLifeTime: 50,
+            maxParticleLifeTime: 250,
+            minParticleSpeed: 5,
+            maxParticleSpeed: 25,
+            minParticleMass: 1,
+            maxParticleMass: 100,
+            trailLength: 5,
+
+            // Explosion
+            minExplosionParticles: 0,
+            maxExplosionParticles: 5,
+
+            // Virtual Particles
+            minVirtualParticleSpeed: 5,
+            maxVirtualParticleSpeed: 25,
+            minVirtualParticleLifeTime: 5,
+            maxVirtualParticleLifeTime: 25,
+            minTimeBetweenVirtualPairs: 5.0,
+
+            // Physics
+            g: 9.81,
+            gUniversal: 6.67430e-11,
+            maxGravityDistance: 50.0,
+            kElectric: 5.0,
+            maxForce: 10.0,
+            gravityType: 'none',
+            electricForce: false,
+            physicsDropDownOpen: false
+        };
+
+        function initializeForms() {
+            // General
+            document.getElementById('maxParticles').value = config.maxParticles;
+            document.getElementById('initialParticles').value = config.initialParticles;
+            document.getElementById('friction').value = config.friction;
+            document.getElementById('seedValue').value = config.setSeed;
+            document.getElementById('particlesDie').checked = config.particlesDie;
+
+            // Patterns
+            document.getElementById('initialPattern').value = config.initialPattern;
+            document.getElementById('patternsDropDownOpen').checked = config.dropDownOpen;
+            document.getElementById('vortexCenterX').value = config.vortexCenter.x;
+            document.getElementById('vortexCenterY').value = config.vortexCenter.y;
+            document.getElementById('vortexStrength').value = config.vortexStrength;
+            document.getElementById('radialStrength').value = config.radialStrength;
+            document.getElementById('vortexRadius').value = config.vortexRadius;
+            document.getElementById('numGroups').value = config.numGroups;
+            document.getElementById('particlesPerGroup').value = config.particlesPerGroup;
+
+            // Inicializar los centros de grupo
+            // initializeGroupCenters();
+
+            // Particles
+            document.getElementById('minParticleLifeTime').value = config.minParticleLifeTime;
+            document.getElementById('maxParticleLifeTime').value = config.maxParticleLifeTime;
+            document.getElementById('minParticleSpeed').value = config.minParticleSpeed;
+            document.getElementById('maxParticleSpeed').value = config.maxParticleSpeed;
+            document.getElementById('minParticleMass').value = config.minParticleMass;
+            document.getElementById('maxParticleMass').value = config.maxParticleMass;
+            document.getElementById('trailLength').value = config.trailLength;
+
+            // Explosion
+            document.getElementById('minExplosionParticles').value = config.minExplosionParticles;
+            document.getElementById('maxExplosionParticles').value = config.maxExplosionParticles;
+
+            // Virtual Particles
+            document.getElementById('minVirtualParticleSpeed').value = config.minVirtualParticleSpeed;
+            document.getElementById('maxVirtualParticleSpeed').value = config.maxVirtualParticleSpeed;
+            document.getElementById('minVirtualParticleLifeTime').value = config.minVirtualParticleLifeTime;
+            document.getElementById('maxVirtualParticleLifeTime').value = config.maxVirtualParticleLifeTime;
+            document.getElementById('minTimeBetweenVirtualPairs').value = config.minTimeBetweenVirtualPairs;
+
+            // Physics
+            document.getElementById('gravityG').value = config.g;
+            document.getElementById('gravityUniversal').value = config.gUniversal;
+            document.getElementById('maxGravityDistance').value = config.maxGravityDistance;
+            document.getElementById('maxForce').value = config.maxForce;
+            document.getElementById('kElectric').value = config.kElectric;
+            document.getElementById('gravityType').value = config.gravityType;
+            document.getElementById('electricForce').checked = config.electricForce;
+            document.getElementById('physicsDropDownOpen').checked = config.physicsDropDownOpen;
+        }
+
+        // function initializeGroupCenters() {
+        //     const container = document.getElementById('groupCentersContainer');
+        //     container.innerHTML = '';
+
+        //     config.groupCenters.forEach((center, index) => {
+        //         const groupDiv = document.createElement('div');
+        //         groupDiv.classList.add('group-center');
+
+        //         // Group Center X
+        //         const groupCenterX = document.createElement('div');
+        //         groupCenterX.classList.add('control-group');
+        //         const labelX = document.createElement('label');
+        //         labelX.textContent = `Group Center ${index + 1} X`;
+        //         labelX.htmlFor = `groupCenter${index + 1}X`;
+        //         const inputX = document.createElement('input');
+        //         inputX.type = 'number';
+        //         inputX.step = '0.1';
+        //         inputX.id = `groupCenter${index + 1}X`;
+        //         inputX.value = center.x;
+        //         groupCenterX.appendChild(labelX);
+        //         groupCenterX.appendChild(inputX);
+
+        //         // Group Center Y
+        //         const groupCenterY = document.createElement('div');
+        //         groupCenterY.classList.add('control-group');
+        //         const labelY = document.createElement('label');
+        //         labelY.textContent = `Group Center ${index + 1} Y`;
+        //         labelY.htmlFor = `groupCenter${index + 1}Y`;
+        //         const inputY = document.createElement('input');
+        //         inputY.type = 'number';
+        //         inputY.step = '0.1';
+        //         inputY.id = `groupCenter${index + 1}Y`;
+        //         inputY.value = center.y;
+        //         groupCenterY.appendChild(labelY);
+        //         groupCenterY.appendChild(inputY);
+
+        //         groupDiv.appendChild(groupCenterX);
+        //         groupDiv.appendChild(groupCenterY);
+
+        //         container.appendChild(groupDiv);
+        //     });
+        // }
+
+
+        var myModule = new Module({
+            canvas: (function () {
+                var canvas = document.getElementById('canvas');
+
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+
+                window.addEventListener('resize', resizeCanvas, false);
+                resizeCanvas();
+                return canvas;
+            })(),
+
+            onRuntimeInitialized: async function () {
+                const instance = await myModule;
+                const applyConfigC = instance.cwrap('apply_config', 'number', ['string']);
+
+                document.getElementById('btnPause').addEventListener('click', function () {
+                    myModule.then(function (instance) {
+                        instance._on_pause_button_click();
+                    });
+                });
+                document.getElementById('btnContinue').addEventListener('click', function () {
+                    myModule.then(function (instance) {
+                        instance._on_continue_button_click();
+                    });
+                });
+                document.getElementById('btnReset').addEventListener('click', function () {
+                    myModule.then(function (instance) {
+                        instance._on_reset_button_click();
+                    });
+                });
+                document.getElementById('applyConfig').addEventListener('click', function () {
+                    const configJSON = JSON.stringify(config);
+                    applyConfigC(configJSON);
+
+                    // Close the tab container
+                    const tabContainer = document.getElementById('tabContainer');
+                    tabContainer.style.display = 'none';
+
+                    // Show the modal
+                    const modal = document.getElementById('modal');
+                    const modalOverlay = document.getElementById('modalOverlay');
+                    modal.style.display = 'block';
+                    modalOverlay.style.display = 'block';
+                });
+
+                document.getElementById('closeModal').addEventListener('click', function () {
+                    const modal = document.getElementById('modal');
+                    const modalOverlay = document.getElementById('modalOverlay');
+                    modal.style.display = 'none';
+                    modalOverlay.style.display = 'none';
+                });
+            },
+            print: function (text) {
+                console.log(text);
+            },
+            printErr: function (text) {
+                console.error(text);
+            },
+            onExit: function (status) {
+                console.log('Closing app with state: ', status);
+            }
+        });
+
+        document.getElementById('btnSettings').addEventListener('click', function () {
+            var tabContainer = document.getElementById('tabContainer');
+            if (tabContainer.style.display === 'none' || tabContainer.style.display === '') {
+                tabContainer.style.display = 'block';
+            } else {
+                tabContainer.style.display = 'none';
+            }
+        });
+
+        document.querySelectorAll('.tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                var selectedTab = tab.getAttribute('data-tab');
+                var tabContainer = document.getElementById('tabContainer');
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                var tabContent = document.getElementById(selectedTab);
+                if (tabContent) {
+                    tabContent.classList.add('active');
+                }
+            });
+        });
+
+        window.addEventListener('click', function (event) {
+            var tabContainer = document.getElementById('tabContainer');
+            var btnSettings = document.getElementById('btnSettings');
+            if (event.target !== btnSettings && !tabContainer.contains(event.target)) {
+                tabContainer.style.display = 'none';
+            }
+        });
+
+        function addEventListeners() {
+            // General
+            document.getElementById('maxParticles').addEventListener('input', function () {
+                config.maxParticles = parseInt(this.value);
+            });
+
+            document.getElementById('initialParticles').addEventListener('input', function () {
+                config.initialParticles = parseInt(this.value);
+            });
+
+            document.getElementById('friction').addEventListener('input', function () {
+                config.friction = parseFloat(this.value);
+            });
+
+            document.getElementById('setSeed').addEventListener('click', function () {
+                config.setSeed = parseInt(document.getElementById('seedValue').value);
+            });
+
+            document.getElementById('particlesDie').addEventListener('change', function () {
+                config.particlesDie = this.checked;
+            });
+
+            // Patterns
+            document.getElementById('initialPattern').addEventListener('change', function () {
+                config.initialPattern = this.value;
+            });
+
+            document.getElementById('patternsDropDownOpen').addEventListener('change', function () {
+                config.dropDownOpen = this.checked;
+            });
+
+            document.getElementById('vortexCenterX').addEventListener('input', function () {
+                config.vortexCenter.x = parseFloat(this.value);
+            });
+
+            document.getElementById('vortexCenterY').addEventListener('input', function () {
+                config.vortexCenter.y = parseFloat(this.value);
+            });
+
+            document.getElementById('vortexStrength').addEventListener('input', function () {
+                config.vortexStrength = parseFloat(this.value);
+            });
+
+            document.getElementById('radialStrength').addEventListener('input', function () {
+                config.radialStrength = parseFloat(this.value);
+            });
+
+            document.getElementById('vortexRadius').addEventListener('input', function () {
+                config.vortexRadius = parseFloat(this.value);
+            });
+
+            document.getElementById('numGroups').addEventListener('input', function () {
+                config.numGroups = parseInt(this.value);
+                // updateGroupCenters(parseInt(this.value));
+            });
+
+            document.getElementById('particlesPerGroup').addEventListener('input', function () {
+                config.particlesPerGroup = parseInt(this.value);
+            });
+
+            // Particles
+            document.getElementById('minParticleLifeTime').addEventListener('input', function () {
+                config.minParticleLifeTime = parseFloat(this.value);
+            });
+
+            document.getElementById('maxParticleLifeTime').addEventListener('input', function () {
+                config.maxParticleLifeTime = parseFloat(this.value);
+            });
+
+            document.getElementById('minParticleSpeed').addEventListener('input', function () {
+                config.minParticleSpeed = parseFloat(this.value);
+            });
+
+            document.getElementById('maxParticleSpeed').addEventListener('input', function () {
+                config.maxParticleSpeed = parseFloat(this.value);
+            });
+
+            document.getElementById('minParticleMass').addEventListener('input', function () {
+                config.minParticleMass = parseFloat(this.value);
+            });
+
+            document.getElementById('maxParticleMass').addEventListener('input', function () {
+                config.maxParticleMass = parseFloat(this.value);
+            });
+
+            document.getElementById('trailLength').addEventListener('input', function () {
+                config.trailLength = parseInt(this.value);
+            });
+
+            // Explosion
+            document.getElementById('minExplosionParticles').addEventListener('input', function () {
+                config.minExplosionParticles = parseInt(this.value);
+            });
+
+            document.getElementById('maxExplosionParticles').addEventListener('input', function () {
+                config.maxExplosionParticles = parseInt(this.value);
+            });
+
+            // Virtual Particles
+            document.getElementById('minVirtualParticleSpeed').addEventListener('input', function () {
+                config.minVirtualParticleSpeed = parseInt(this.value);
+            });
+
+            document.getElementById('maxVirtualParticleSpeed').addEventListener('input', function () {
+                config.maxVirtualParticleSpeed = parseInt(this.value);
+            });
+
+            document.getElementById('minVirtualParticleLifeTime').addEventListener('input', function () {
+                config.minVirtualParticleLifeTime = parseInt(this.value);
+            });
+
+            document.getElementById('maxVirtualParticleLifeTime').addEventListener('input', function () {
+                config.maxVirtualParticleLifeTime = parseInt(this.value);
+            });
+
+            document.getElementById('minTimeBetweenVirtualPairs').addEventListener('input', function () {
+                config.minTimeBetweenVirtualPairs = parseFloat(this.value);
+            });
+
+            // Physics
+            document.getElementById('gravityG').addEventListener('input', function () {
+                config.g = parseFloat(this.value);
+            });
+
+            document.getElementById('gravityUniversal').addEventListener('input', function () {
+                config.gUniversal = parseFloat(this.value);
+            });
+
+            document.getElementById('maxGravityDistance').addEventListener('input', function () {
+                config.maxGravityDistance = parseFloat(this.value);
+            });
+
+            document.getElementById('maxForce').addEventListener('input', function () {
+                config.maxForce = parseFloat(this.value);
+            });
+
+            document.getElementById('kElectric').addEventListener('input', function () {
+                config.kElectric = parseFloat(this.value);
+            });
+
+            document.getElementById('gravityType').addEventListener('change', function () {
+                config.gravityType = this.value;
+            });
+
+            document.getElementById('electricForce').addEventListener('change', function () {
+                config.electricForce = this.checked;
+            });
+
+            document.getElementById('physicsDropDownOpen').addEventListener('change', function () {
+                config.physicsDropDownOpen = this.checked;
+            });
+        }
+
+        // function updateGroupCenters(newNumGroups) {
+        //     const container = document.getElementById('groupCentersContainer');
+        //     const currentNumGroups = config.groupCenters.length;
+
+        //     if (newNumGroups > currentNumGroups) {
+        //         for (let i = currentNumGroups; i < newNumGroups; i++) {
+        //             config.groupCenters.push({ x: 0, y: 0 });
+        //         }
+        //     } else if (newNumGroups < currentNumGroups) {
+        //         config.groupCenters.splice(newNumGroups, currentNumGroups - newNumGroups);
+        //     }
+
+        //     initializeGroupCenters();
+        // }
+
+        window.onload = function () {
+            initializeForms();
+            addEventListeners();
+        };
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+    </script>
+    {{{ SCRIPT }}}
+</body>
+
+</html>

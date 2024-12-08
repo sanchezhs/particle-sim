@@ -12,6 +12,9 @@
         "functional": "c",
         "tuple": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "raylib.h": "c",
+        "raygui.h": "c",
+        "simulation.h": "c"
     }
 }

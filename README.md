@@ -10,25 +10,43 @@ This project is written in C, utilizing the Raylib library for graphics and the 
 - Physics Customization: Adjust forces, gravity, and other physics settings.
 - Interactive GUI: Configure the simulation in real-time using a clean and intuitive settings panel.
 
+# Dependencies
+- [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) (to compile to WebAssembly)
+- [Raylib](https://www.raylib.com/) (graphics library)
+- [Ragui](https://github.com/raygui) (graphics library)
+- [cJSON](https://github.com/DaveGamble/cJSON) (JSON in C)
+
+
 # Installation
 1. Clone the repository
 ```bash
 git clone https://github.com/sanchezhs/particle-sim.git
 ```
+
 2. Navigate to the project directory
 ```bash
 cd particle-sim
 ```
 
 3. Compile the program
+- For Linux (desktop)
 ```bash
 make
 ```
 
+- For web
+```bash
+make PLATFORM=WEB
+```
+
 4. Run the simulator
+- If you compiled the desktop version
 ```bash
 ./simulation
 ```
+
+- If you compiled the web version open simulation.html with the browser
+
 
 # Usage
 
@@ -44,22 +62,22 @@ Interactivity
 Experiment with different configurations and observe how particles behave in various scenarios.
 
 # Examples
-![fullGif](./resources/example1.gif)
+![fullGif](./examples/example1.gif)
 
 Full program
-![full](./resources/full.png)
+![full](./examples/full.png)
 
 Particle settings
-![particles](./resources/particles.png)
+![particles](./examples/particles.png)
 
 Particle explosions settings
-![explosions](./resources/explosions.png)
+![explosions](./examples/explosions.png)
 
 Virtual particle settings
-![virtual](./resources/virtual.png)
+![virtual](./examples/virtual.png)
 
 General settings relative to physics
-![physics](./resources/physics.png)
+![physics](./examples/physics.png)
 
 # Known Issues (TODO)
 - Segmentation Faults: Some settings combinations may lead to segmentation faults.

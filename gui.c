@@ -1,4 +1,5 @@
-#include <raylib.h>
+// #include <raylib.h>
+#include "./raylib/src/raylib.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +7,7 @@
 #include "raygui.h"
 #include "gui.h"
 
-void DrawTooltip(const char *tooltipText, Rectangle bounds)
+void DrawTooltip(const char *tooltipText)
 {
     float padding = 8.0f;
     Vector2 mousePosition = GetMousePosition();
@@ -42,7 +43,7 @@ void generalTab(GeneralTabParameters *gtp)
     GuiValueBox((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, gtp->maxParticles.value, 0, 10000, true);
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
     {
-        DrawTooltip("The maximum number of particles that can be simulated", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+        DrawTooltip("The maximum number of particles that can be simulated");
     }
 
     yOffset += verticalSpacing;
@@ -54,7 +55,7 @@ void generalTab(GeneralTabParameters *gtp)
     GuiValueBoxFloat((Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight}, NULL, gtp->friction.textValue, gtp->friction.value);
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
     {
-        DrawTooltip("Particle's speed can increase, decrease or stay the same", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+        DrawTooltip("Particle's speed can increase, decrease or stay the same");
     }
 
     yOffset += verticalSpacing;
@@ -73,7 +74,7 @@ void generalTab(GeneralTabParameters *gtp)
     }
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
     {
-        DrawTooltip("Enable if particles should have a limited lifetime", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
+        DrawTooltip("Enable if particles should have a limited lifetime");
     }
 
     yOffset += verticalSpacing;
@@ -83,7 +84,7 @@ void generalTab(GeneralTabParameters *gtp)
     }
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
     {
-        DrawTooltip("Enable if fragments should have their own lifetime", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
+        DrawTooltip("Enable if fragments should have their own lifetime");
     }
 
     yOffset += verticalSpacing;
@@ -93,11 +94,11 @@ void generalTab(GeneralTabParameters *gtp)
     }
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, controlHeight, controlHeight}))
     {
-        DrawTooltip("Enable if pairs of virtual particles can be generated", (Rectangle){xOffset, yOffset, controlHeight, controlHeight});
+        DrawTooltip("Enable if pairs of virtual particles can be generated");
     }
 }
 
-void patternsTab(PatternsTabParameters *pstp, int simulationWidth, int simulationHeight)
+void patternsTab(PatternsTabParameters *pstp)
 {
     float screenWidth = (float)GetScreenWidth();
     float screenHeight = (float)GetScreenHeight();
@@ -274,7 +275,7 @@ void explosionTab(ExplosionTabParameters *etp)
     );
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
     {
-        DrawTooltip("The minimum number of particles created when a particle dies", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+        DrawTooltip("The minimum number of particles created when a particle dies");
     }
 
     // Max Explosion Particles
@@ -290,7 +291,7 @@ void explosionTab(ExplosionTabParameters *etp)
     );
     if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){xOffset, yOffset, labelWidth, controlHeight}))
     {
-        DrawTooltip("The maximum number of particles created when a particle dies", (Rectangle){xOffset + labelWidth, yOffset, controlWidth, controlHeight});
+        DrawTooltip("The maximum number of particles created when a particle dies");
     }
 
 }

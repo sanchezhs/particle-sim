@@ -96,7 +96,7 @@ typedef struct {
 } PhysicsTabParameters;
 
 void generalTab(GeneralTabParameters *gtp);
-void patternsTab(PatternsTabParameters *ptp, int simulationWidth, int simulationHeight);
+void patternsTab(PatternsTabParameters *ptp);
 void particlesTab(ParticlesTabParameters *particlesTabParameters);
 void explosionTab(ExplosionTabParameters *etp);
 void virtualParticlesTab(VirtualParticlesTabParameters *vtp);
