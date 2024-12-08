@@ -98,64 +98,14 @@ void ResetSimulation(const SimulationConfig *config, Particles *particles, int s
     }
 }
 
-// void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
-// {
-//     assert(screenWidth > 100 && screenHeight > 100 && "Screen dimensions are too small!");
-
-//     for (int i = 0; i < (*config).initialCapacity; i++)
-//     {
-//         float mass = GetRandomValue((*config).minParticleMass, (*config).maxParticleMass);
-//         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
-//         int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
-//         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
-
-//         Particle p = (Particle){
-//             .id = globalParticleID++,
-//             .mass = mass,
-//             .size = cbrtf(mass),
-//             .charge = charge,
-//             .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
-//             .velocity = (Vector2){
-//                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0, // x
-//                 GetRandomValue((int)(*config).minParticleSpeed, (int)(*config).maxParticleSpeed) / 50.0  // y
-//             },
-//             // .color = (charge > 0) ? RED : BLUE,
-//             .color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255},
-//             .lifetime = GetRandomValue((int)(*config).minParticleLifeTime, (int)(*config).maxParticleLifeTime),
-//             .isFragment = false,
-//             .isVirtual = false,
-//         };
-//         // Randomize direction
-//         p.velocity.x *= xDirection;
-//         p.velocity.y *= yDirection;
-
-//         int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
-//         for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
-//         {
-//             p.trail[j] = p.position;
-//         }
-//         p.trailIndex = 0;
-//         ARRAY_APPEND(particles, p);
-//     }
-// }
-
 void InitRandomParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
 {
-    // Vector2 voidCenter = (Vector2) {GetRandomValue(0, screenWidth), GetRandomValue(0, screenHeight)};
-    // int voidRadious = 50.0f;
-
     for (int i = 0; i < config->initialCapacity; i++)
     {
         float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
         int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
-
-        // Vector2 position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)};
-        // while (PSVector2Distance(position, voidCenter) < voidRadious)
-        // {
-        //     position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)};
-        // }
 
         Particle p = (Particle){
             .id = globalParticleID++,
