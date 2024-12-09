@@ -150,6 +150,11 @@ Experience ParticleSim directly from your browser without any installations:
 
 Explore some of the captivating simulations created with ParticleSim:
 
+### Web Version
+![Web Version 1](./examples/web1.png)
+
+![Web Version 2](./examples/web2.png)
+
 ### Full Program
 
 ![Full Program](./examples/full.png)
