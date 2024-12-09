@@ -5,20 +5,34 @@
 #endif
 
 #include "raygui.h"
+#include "external/raylib/src/raymath.h"
 #include "simulation.h"
 #include "cJSON.h"
 #include "gui.h"
 
-#define SIMULATION_WIDTH 2500
-#define SIMULATION_HEIGHT 2500
+#define SIMULATION_WIDTH 10000
+#define SIMULATION_HEIGHT 10000
 
-Camera2D camera;
-bool showConfigPanel = false;
 bool paused = false;
 int activeTab = 0;
 
+// Hash table for spatial partitioning
+HashTable *table = NULL;
+
+// Camera
+Camera2D camera;
+bool showConfigPanel = false;
+static bool rightMousePressed = false;
+static Vector2 previousMousePosition = {0};
+const float ZOOM_INCREMENT = 0.1f;
+const float ZOOM_MIN = 0.1f;
+const float ZOOM_MAX = 10.0f;
+
 float gridWidth = 0.0f;
 float gridHeight = 0.0f;
+float gridSpacing = 250.f;
+Color gridColor = (Color) {.r = 248, .g = 249, .b = 249, .a = 25};
+Color originColor = GRAY;
 
 int buttonWidth = 0;
 int buttonHeight = 0;
@@ -45,12 +59,6 @@ PhysicsTabParameters phtp;
 
 RenderTexture2D target;
 RenderTexture2D simulationTexture;
-
-static bool rightMousePressed = false;
-static Vector2 previousMousePosition = {0};
-const float ZOOM_INCREMENT = 0.1f;
-const float ZOOM_MIN = 0.1f;
-const float ZOOM_MAX = 10.0f;
 
 // Tab texts
 const char *tabTexts[MAX_TABS] = {"General", "Patterns", "Particles", "Explosions", "Virtual Particles", "Physics"};
@@ -102,7 +110,7 @@ void on_continue_button_click(void)
 EMSCRIPTEN_KEEPALIVE
 void on_reset_button_click(void)
 {
-    ResetSimulation(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
+    ResetSimulation(&config, &particles, table, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -154,15 +162,7 @@ void apply_config(const char *config_json)
         printf("Updated friction: %.2f\n", config.friction);
     }
 
-    // setSeed
-    // cJSON *setSeed = cJSON_GetObjectItemCaseSensitive(json, "setSeed");
-    // if (cJSON_IsNumber(setSeed))
-    // {
-    //     config.setSeed = setSeed->valueint;
-    //     printf("Updated setSeed: %d\n", config.setSeed);
-    // }
-
-    // particlesDie (correspondiente a lifetime)
+    // particlesDie (corresponding to lifetime)
     cJSON *particlesDie = cJSON_GetObjectItemCaseSensitive(json, "particlesDie");
     if (cJSON_IsBool(particlesDie))
     {
@@ -224,7 +224,7 @@ void apply_config(const char *config_json)
     {
         config.numGroups = numGroups->valueint;
         if (config.numGroups > 100)
-        { // Asegurarse de no exceder el máximo
+        {
             config.numGroups = 100;
         }
         printf("Updated numGroups: %d\n", config.numGroups);
@@ -236,10 +236,10 @@ void apply_config(const char *config_json)
     {
         int groupCount = cJSON_GetArraySize(groupCenters);
         if (groupCount > 100)
-        { // Limitar al máximo permitido
+        {
             groupCount = 100;
         }
-        config.numGroups = groupCount; // Actualizar numGroups basado en el array
+        config.numGroups = groupCount;
         printf("Updated numGroups based on groupCenters array: %d\n", config.numGroups);
         for (int i = 0; i < groupCount; i++)
         {
@@ -442,7 +442,6 @@ void apply_config(const char *config_json)
         printf("Updated electricForce: %s\n", config.electricForce ? "true" : "false");
     }
 
-    // Liberar el objeto JSON
     cJSON_Delete(json);
 
     printf("Configuration applied successfully.\n");
@@ -525,20 +524,48 @@ void initGuiParamaters(SimulationConfig *config, GeneralTabParameters *gpt, Patt
     snprintf(phtp->maxForce.textValue, sizeof(phtp->maxForce.textValue), "%.2f", *(phtp->maxForce.value));
 }
 
+void drawInfiniteGrid(Camera2D camera, int screenWidth, int screenHeight, float gridSpacing, Color gridColor, Color originColor)
+{
+    Vector2 topLeft = GetScreenToWorld2D((Vector2){0, 0}, camera);
+    Vector2 bottomRight = GetScreenToWorld2D((Vector2){(float)screenWidth, (float)screenHeight}, camera);
+
+    float firstVertical = floor(topLeft.x / gridSpacing) * gridSpacing;
+    float lastVertical = ceil(bottomRight.x / gridSpacing) * gridSpacing;
+
+    for (float x = firstVertical; x <= lastVertical; x += gridSpacing)
+    {
+        Color lineColor = gridColor;
+        if (fabsf(x) < 0.01f)
+            lineColor = originColor;
+        DrawLineV((Vector2){x, topLeft.y}, (Vector2){x, bottomRight.y}, lineColor);
+    }
+
+    float firstHorizontal = floor(topLeft.y / gridSpacing) * gridSpacing;
+    float lastHorizontal = ceil(bottomRight.y / gridSpacing) * gridSpacing;
+
+    for (float y = firstHorizontal; y <= lastHorizontal; y += gridSpacing)
+    {
+        Color lineColor = gridColor;
+        if (fabsf(y) < 0.01f)
+            lineColor = originColor;
+        DrawLineV((Vector2){topLeft.x, y}, (Vector2){bottomRight.x, y}, lineColor);
+    }
+}
+
 
 void updateCamera(float deltaTime) {
-    if (IsKeyDown(KEY_W)) camera.target.y -= 500 * deltaTime;
-    if (IsKeyDown(KEY_S)) camera.target.y += 500 * deltaTime;
-    if (IsKeyDown(KEY_A)) camera.target.x -= 500 * deltaTime;
-    if (IsKeyDown(KEY_D)) camera.target.x += 500 * deltaTime;
+    int cameraSpeed = 750;
+    if (IsKeyDown(KEY_W)) camera.target.y -= cameraSpeed * deltaTime;
+    if (IsKeyDown(KEY_S)) camera.target.y += cameraSpeed * deltaTime;
+    if (IsKeyDown(KEY_A)) camera.target.x -= cameraSpeed * deltaTime;
+    if (IsKeyDown(KEY_D)) camera.target.x += cameraSpeed * deltaTime;
 
-    if (IsKeyDown(KEY_Q)) camera.zoom += 0.1f * deltaTime;
-    if (IsKeyDown(KEY_E)) camera.zoom -= 0.1f * deltaTime;
+    if (IsKeyDown(KEY_Q)) camera.zoom += 0.5f * deltaTime;
+    if (IsKeyDown(KEY_E)) camera.zoom -= 0.5f * deltaTime;
 
     if (camera.zoom < 0.1f) camera.zoom = 0.1f;
     if (camera.zoom > 3.0f) camera.zoom = 3.0f;
 }
-
 
 void main_loop_web(void)
 {
@@ -549,11 +576,15 @@ void main_loop_web(void)
     float wheelMove = GetMouseWheelMove();
     if (wheelMove != 0)
     {
-        camera.zoom += wheelMove * ZOOM_INCREMENT * camera.zoom;
-        if (camera.zoom < ZOOM_MIN)
-            camera.zoom = ZOOM_MIN;
-        if (camera.zoom > ZOOM_MAX)
-            camera.zoom = ZOOM_MAX;
+         float newZoom = camera.zoom + wheelMove * 0.1f;
+        newZoom = fmax(newZoom, 0.1f);
+        newZoom = fmin(newZoom, 10.0f);
+
+        Vector2 mouseWorldBeforeZoom = GetScreenToWorld2D(GetMousePosition(), camera);
+        camera.zoom = newZoom;
+        Vector2 mouseWorldAfterZoom = GetScreenToWorld2D(GetMousePosition(), camera);
+        Vector2 zoomOffset = Vector2Subtract(mouseWorldBeforeZoom, mouseWorldAfterZoom);
+        camera.target = Vector2Add(camera.target, zoomOffset);
     }
 
     if (IsWindowResized())
@@ -562,12 +593,6 @@ void main_loop_web(void)
         UnloadRenderTexture(target);
         simulationTexture = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
         target = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
-
-        gridWidth = ((SIMULATION_WIDTH + CELL_SIZE - 1) / CELL_SIZE);
-        gridHeight = ((SIMULATION_HEIGHT + CELL_SIZE - 1) / CELL_SIZE);
-        InitGrid(&config, gridWidth, gridHeight);
-        ResetSimulation(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT);
-
         camera.offset = (Vector2){GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
     }
 
@@ -592,7 +617,7 @@ void main_loop_web(void)
         rightMousePressed = false;
     }
 
-    if (!showConfigPanel && !paused)
+    if (!paused)
     {
         HandleInput(&config, &particles, GetScreenWidth(), GetScreenHeight());
 
@@ -600,99 +625,22 @@ void main_loop_web(void)
         {
             GenerateVirtualParticles(&config, &particles, delta, SIMULATION_WIDTH, SIMULATION_HEIGHT);
         }
-        UpdateSimulation(&config, &particles, &target, SIMULATION_WIDTH, SIMULATION_HEIGHT, gridWidth, gridHeight);
+        UpdateSimulation(&config, &particles, table, SIMULATION_WIDTH, SIMULATION_HEIGHT);
     }
-
-    BeginTextureMode(simulationTexture);
-    ClearBackground(RAYWHITE);
-
-    if (!showConfigPanel)
-    {
-        DrawTextureRec(target.texture, (Rectangle){0, 0, (float)target.texture.width, (float)-target.texture.height}, (Vector2){0, 0}, WHITE);
-
-        if (config.initialPattern == PATTERN_BLACKHOLE)
-        {
-            DrawCircleV(config.blackHoleCenter, config.blackHoleRadius, BLACK);
-            DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, config.blackHoleRadius, GRAY);
-
-            float glowRadius = config.blackHoleRadius * 1.5f;
-            float glowThickness = 2.0f;
-            for (float r = config.blackHoleRadius; r <= glowRadius; r += glowThickness)
-            {
-                float alpha = 0.5f * (1.0f - (r - config.blackHoleRadius) / (glowRadius - config.blackHoleRadius));
-                Color glowColor = (Color){128, 128, 128, (unsigned char)(alpha * 255)};
-                DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, r, glowColor);
-            }
-
-            float accretionDiskInnerRadius = config.blackHoleRadius * 1.1f;
-            float accretionDiskOuterRadius = config.blackHoleRadius * 2.0f;
-            for (float r = accretionDiskInnerRadius; r <= accretionDiskOuterRadius; r += 1.0f)
-            {
-                float alpha = 0.3f * (1.0f - (r - accretionDiskInnerRadius) / (accretionDiskOuterRadius - accretionDiskInnerRadius));
-                Color diskColor = (Color){255, 165, 0, (unsigned char)(alpha * 255)}; // Resplandor naranja
-                DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, r, diskColor);
-            }
-        }
-        // Rectangle simBounds = {0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT};
-        // int lineThickness = 1;
-        // Color fillColor = Fade(BLACK, 0.1f);
-        // DrawRectangleRec(simBounds, fillColor);
-        // DrawRectangleLinesEx(simBounds, lineThickness, BLACK);
-    }
-    EndTextureMode();
-
     BeginDrawing();
-    ClearBackground(BLACK);
+        ClearBackground(BLACK);
+            BeginMode2D(camera);
+                drawInfiniteGrid(camera, GetScreenWidth(), GetScreenHeight(), gridSpacing, gridColor, originColor);
+                RenderParticles(table, camera, CELL_SIZE);
+        EndMode2D();
 
-    BeginMode2D(camera);
-    DrawTextureRec(simulationTexture.texture, (Rectangle){0, 0, (float)simulationTexture.texture.width, (float)-simulationTexture.texture.height}, (Vector2){0, 0}, WHITE);
-    EndMode2D();
+        char zoomText[50];
+        snprintf(zoomText, sizeof(zoomText), "%.2fx", camera.zoom);
+        GuiLabel((Rectangle){GetScreenWidth() - 90, 10, 140, 30}, zoomText);
 
-    char zoomText[50];
-    snprintf(zoomText, sizeof(zoomText), "%.2fx", camera.zoom);
-    GuiLabel((Rectangle){GetScreenWidth() - 90, 10, 140, 30}, zoomText);
-
-    char particleText[50];
-    snprintf(particleText, sizeof(particleText), "Particles: %d", particles.count);
-    GuiLabel((Rectangle){(int)(GetScreenWidth() / 2 - 50), 10, 200, buttonHeight}, particleText);
-
-    if (showConfigPanel)
-    {
-        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0, 0, 0, 128});
-        Rectangle configBounds = {0, 0, GetScreenWidth(), GetScreenHeight()};
-        DrawRectangleRec(configBounds, RAYWHITE);
-        Rectangle tabBarBounds = {0, 0, GetScreenWidth(), GetScreenHeight() * 0.05f};
-        int closedTab = GuiTabBar(tabBarBounds, tabTexts, MAX_TABS, &activeTab);
-
-        if (closedTab >= 0)
-        {
-            TraceLog(LOG_INFO, "Closed tab: %d", closedTab);
-        }
-
-        switch (activeTab)
-        {
-        case 0:
-            generalTab(&gtp);
-            break;
-        case 1:
-            patternsTab(&pstp);
-            break;
-        case 2:
-            particlesTab(&ptp);
-            break;
-        case 3:
-            explosionTab(&etp);
-            break;
-        case 4:
-            virtualParticlesTab(&vtp);
-            break;
-        case 5:
-            physicsTab(&phtp);
-            break;
-        default:
-            break;
-        }
-    }
+        char particleText[50];
+        snprintf(particleText, sizeof(particleText), "Particles: %d", particles.count);
+        GuiLabel((Rectangle){(int)(GetScreenWidth() / 2 - 50), 10, 200, buttonHeight}, particleText);
     EndDrawing();
 }
 
@@ -700,12 +648,13 @@ void main_loop_desktop(void)
 {
     screenWidth = GetScreenWidth();
     scaleFactor = (float)screenWidth / 800;
-    baseFontSize = 8;
+    baseFontSize = 18;
     scaledFontSize = (int)(baseFontSize * scaleFactor);
 
     while (!WindowShouldClose())
     {
         float delta = GetFrameTime();
+        updateCamera(delta);
         GuiSetStyle(DEFAULT, TEXT_SIZE, scaledFontSize);
         Vector2 mousePos = GetMousePosition();
 
@@ -714,17 +663,18 @@ void main_loop_desktop(void)
         float wheelMove = GetMouseWheelMove();
         if (wheelMove != 0)
         {
-            camera.zoom += wheelMove * ZOOM_INCREMENT * camera.zoom;
-            if (camera.zoom < ZOOM_MIN)
-                camera.zoom = ZOOM_MIN;
-            if (camera.zoom > ZOOM_MAX)
-                camera.zoom = ZOOM_MAX;
+            float newZoom = camera.zoom + wheelMove * 0.1f;
+            newZoom = fmax(newZoom, 0.1f);
+            newZoom = fmin(newZoom, 10.0f);
+
+            Vector2 mouseWorldBeforeZoom = GetScreenToWorld2D(GetMousePosition(), camera);
+            camera.zoom = newZoom;
+            Vector2 mouseWorldAfterZoom = GetScreenToWorld2D(GetMousePosition(), camera);
+            Vector2 zoomOffset = Vector2Subtract(mouseWorldBeforeZoom, mouseWorldAfterZoom);
+            camera.target = Vector2Add(camera.target, zoomOffset);
         }
 
-        // Update footerHeight if window is resized
         footerHeight = buttonHeight + (int)(GetScreenHeight() * 0.03f);
-
-        // Recalculate button positions
         int numButtons = 4;
         int spacing = 10;
         float totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
@@ -736,22 +686,12 @@ void main_loop_desktop(void)
         resetBtnRect = (Rectangle){startX + 2 * (buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
         settingsBtnRect = (Rectangle){startX + 3 * (buttonWidth + spacing), centerY, buttonWidth, buttonHeight};
 
-        // Handle window resize events
         if (IsWindowResized())
         {
-            // Update RenderTextures based on simulation size
             UnloadRenderTexture(simulationTexture);
             UnloadRenderTexture(target);
             simulationTexture = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
             target = LoadRenderTexture(SIMULATION_WIDTH, SIMULATION_HEIGHT);
-
-            // Update grid
-            gridWidth = ((SIMULATION_WIDTH + CELL_SIZE - 1) / CELL_SIZE);
-            gridHeight = ((SIMULATION_HEIGHT + CELL_SIZE - 1) / CELL_SIZE);
-            InitGrid(&config, gridWidth, gridHeight);
-            ResetSimulation(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
-
-            // Update camera
             camera.offset = (Vector2){GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f};
         }
 
@@ -768,7 +708,7 @@ void main_loop_desktop(void)
             }
             else if (CheckCollisionPointRec(mousePos, resetBtnRect))
             {
-                ResetSimulation(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
+                ResetSimulation(&config, &particles, table, SIMULATION_WIDTH, SIMULATION_HEIGHT);
             }
             else if (CheckCollisionPointRec(mousePos, settingsBtnRect))
             {
@@ -798,6 +738,7 @@ void main_loop_desktop(void)
             rightMousePressed = false;
         }
 
+        // Pause simulation
         if (!showConfigPanel && !paused)
         {
             HandleInput(&config, &particles, GetScreenWidth(), GetScreenHeight() - footerHeight);
@@ -806,7 +747,7 @@ void main_loop_desktop(void)
             {
                 GenerateVirtualParticles(&config, &particles, delta, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
             }
-            UpdateSimulation(&config, &particles, &target, SIMULATION_WIDTH, SIMULATION_HEIGHT, gridWidth, gridHeight);
+            UpdateSimulation(&config, &particles, table, SIMULATION_WIDTH, SIMULATION_HEIGHT);
         }
 
         BeginTextureMode(simulationTexture);
@@ -842,22 +783,15 @@ void main_loop_desktop(void)
                     DrawCircleLines(config.blackHoleCenter.x, config.blackHoleCenter.y, r, diskColor);
                 }
             }
-            Rectangle simBounds = {0, 0, SIMULATION_WIDTH, SIMULATION_HEIGHT};
-            int lineThickness = 1;
-            Color fillColor = Fade(BLACK, 0.1f);
-            DrawRectangleRec(simBounds, fillColor);
-            DrawRectangleLinesEx(simBounds, lineThickness, BLACK);
         }
         EndTextureMode();
 
         BeginDrawing();
-        ClearBackground(BLACK);
-
-        BeginMode2D(camera);
-        DrawTextureRec(simulationTexture.texture, (Rectangle){0, 0, (float)simulationTexture.texture.width, (float)-simulationTexture.texture.height}, (Vector2){0, 0}, WHITE);
-        EndMode2D();
-
-        DrawRectangle(0, GetScreenHeight() - footerHeight, GetScreenWidth(), footerHeight, (Color){200, 200, 200, 255});
+            ClearBackground(BLACK);
+            BeginMode2D(camera);
+                drawInfiniteGrid(camera, GetScreenWidth(), GetScreenHeight(), gridSpacing, gridColor, originColor);
+                RenderParticles(table, camera, CELL_SIZE);
+            EndMode2D();
 
         GuiButton(pauseBtnRect, "Pause");
         GuiButton(resumeBtnRect, "Resume");
@@ -870,7 +804,7 @@ void main_loop_desktop(void)
 
         char particleText[50];
         snprintf(particleText, sizeof(particleText), "Particles: %d", particles.count);
-        GuiLabel((Rectangle){(int)(GetScreenWidth() / 2 - 50), 10, 200, buttonHeight}, particleText);
+        GuiLabel((Rectangle){GetScreenWidth() / 2, 10, 200, buttonHeight}, particleText);
 
         if (showConfigPanel)
         {
@@ -923,9 +857,11 @@ int main(void)
 {
     TraceLog(LOG_INFO, "Initializing window...");
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(SIMULATION_WIDTH, SIMULATION_HEIGHT, "Particle Simulation");
+    InitWindow(800, 800, "Particle Simulation");
     SetTargetFPS(60);
     TraceLog(LOG_INFO, "Window initialized.");
+
+    table = InitHashTable();
 
     TraceLog(LOG_INFO, "Loading fonts...");
     Font customFont = LoadFont("resources/UbuntuMonoNerdFont-Regular.ttf");
@@ -1010,11 +946,10 @@ int main(void)
 
     gridWidth = ((SIMULATION_WIDTH + CELL_SIZE - 1) / CELL_SIZE);
     gridHeight = ((SIMULATION_HEIGHT + CELL_SIZE - 1) / CELL_SIZE);
-    InitGrid(&config, gridWidth, gridHeight);
-    InitParticles(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT - footerHeight);
+    InitParticles(&config, &particles, SIMULATION_WIDTH, SIMULATION_HEIGHT);
 
-    buttonWidth = GetScreenWidth() * 0.05;
-    buttonHeight = GetScreenHeight() * 0.025;
+    buttonWidth = GetScreenWidth() * 0.15;
+    buttonHeight = GetScreenHeight() * 0.05;
     footerHeight = buttonHeight + (int)(GetScreenHeight() * 0.03f);
 
     float totalWidth = 4 * buttonWidth + 3 * 10;
@@ -1034,8 +969,7 @@ int main(void)
         main_loop_desktop();
     }
 #endif
-    CleanupSimulation(&particles, gridWidth, gridHeight);
-    FreeGrid(gridWidth, gridHeight);
+    FreeHashTable(table);
     UnloadRenderTexture(simulationTexture);
     CloseWindow();
 

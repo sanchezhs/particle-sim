@@ -1,19 +1,20 @@
 #include <assert.h>
 #include <math.h>
 #include "./external/raylib/src/raylib.h"
+#include "./external/raylib/src/raymath.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
 #include "simulation.h"
 
-// Cell grid[GRID_WIDTH][GRID_HEIGHT];
-Cell **grid;
 int globalParticleID = 0;       // Global particle ID counter
 float timeSinceLastPair = 0.0f; // Global timer for particle generation
 
-void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight);
 void ResolveCollision(Particle *p1, Particle *p2);
 bool Collide(Particle *p1, Particle *p2);
+float GetRandomFloat(float min, float max);
+unsigned int HashFunction(int cellX, int cellY);
 
 // Helpers
 float GetRandomFloat(float min, float max)
@@ -21,52 +22,89 @@ float GetRandomFloat(float min, float max)
     return min + (max - min) * GetRandomValue(0, 10000) / 10000.0f;
 }
 
-float PSVector2Length(Vector2 v)
+unsigned int HashFunction(int cellX, int cellY)
 {
-    return sqrtf(v.x * v.x + v.y * v.y);
+    unsigned int hash = 5381;
+    hash = ((hash << 5) + hash) + cellX; // hash * 33 + cellX
+    hash = ((hash << 5) + hash) + cellY; // hash * 33 + cellY
+    return hash % HASH_TABLE_SIZE;
 }
 
-Vector2 PSVector2Normalize(Vector2 v)
+HashTable* InitHashTable(void) {
+    HashTable *table = malloc(sizeof(HashTable));
+    memset(table->buckets, 0, sizeof(table->buckets));
+    return table;
+}
+
+GridCell *GetOrCreateGridCell(HashTable *table, int cellX, int cellY)
 {
-    float length = PSVector2Length(v);
-    Vector2 normalized = {0.0f, 0.0f};
-    if (length != 0.0f)
+    unsigned int index = HashFunction(cellX, cellY);
+    GridCell *cell = table->buckets[index];
+
+    while (cell != NULL)
     {
-        normalized.x = v.x / length;
-        normalized.y = v.y / length;
+        if (cell->cellX == cellX && cell->cellY == cellY)
+        {
+            return cell;
+        }
+        cell = cell->next;
     }
-    return normalized;
+
+    cell = malloc(sizeof(GridCell));
+    cell->cellX = cellX;
+    cell->cellY = cellY;
+    cell->particles = NULL;
+    cell->next = table->buckets[index];
+    table->buckets[index] = cell;
+    return cell;
 }
 
-Vector2 PSVector2Scale(Vector2 v, float scalar)
+GridCell *GetGridCell(HashTable *table, int cellX, int cellY)
 {
-    Vector2 scaled = {v.x * scalar, v.y * scalar};
-    return scaled;
+    unsigned int index = HashFunction(cellX, cellY);
+    GridCell *cell = table->buckets[index];
+
+    while (cell != NULL)
+    {
+        if (cell->cellX == cellX && cell->cellY == cellY)
+        {
+            return cell;
+        }
+        cell = cell->next;
+    }
+
+    return NULL;
 }
 
-Vector2 PSVector2Subtract(Vector2 a, Vector2 b)
+void ClearHashTable(HashTable *table)
 {
-    Vector2 result = {a.x - b.x, a.y - b.y};
-    return result;
+    for (int i = 0; i < HASH_TABLE_SIZE; i++)
+    {
+        GridCell *cell = table->buckets[i];
+        while (cell != NULL)
+        {
+            ParticleNode *node = cell->particles;
+            while (node != NULL)
+            {
+                ParticleNode *temp = node;
+                node = node->next;
+                free(temp);
+            }
+            GridCell *tempCell = cell;
+            cell = cell->next;
+            free(tempCell);
+        }
+        table->buckets[i] = NULL;
+    }
 }
 
-Vector2 PSVector2Add(Vector2 a, Vector2 b)
+void FreeHashTable(HashTable *table)
 {
-    Vector2 result = {a.x + b.x, a.y + b.y};
-    return result;
+    ClearHashTable(table);
+    free(table);
 }
 
-float PSVector2DotProduct(Vector2 a, Vector2 b)
-{
-    return (a.x * b.x) + (a.y * b.y);
-}
-
-float PSVector2Distance(Vector2 a, Vector2 b)
-{
-    return sqrtf(powf(b.x - a.x, 2) + powf(b.y - a.y, 2));
-}
-
-void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void ResetSimulation(const SimulationConfig *config, Particles *particles, HashTable *grid, int screenWidth, int screenHeight)
 {
     particles->count = 0;
     globalParticleID = 0;
@@ -89,17 +127,12 @@ void ResetSimulation(const SimulationConfig *config, Particles *particles, int s
     InitParticles(config, particles, screenWidth, screenHeight);
 
     // Reset grid
-    for (int x = 0; x < GRID_WIDTH; x++)
-    {
-        for (int y = 0; y < GRID_HEIGHT; y++)
-        {
-            grid[x][y].count = 0;
-        }
-    }
+    ClearHashTable(grid);
 }
 
-void InitRandomParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight)
+void InitRandomParticles(const SimulationConfig *config, Particles *particles)
 {
+    int initialRange = 10000;
     for (int i = 0; i < config->initialCapacity; i++)
     {
         float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
@@ -112,7 +145,7 @@ void InitRandomParticles(const SimulationConfig *config, Particles *particles, i
             .mass = mass,
             .size = cbrtf(mass),
             .charge = charge,
-            .position = (Vector2){GetRandomValue(50, screenWidth - 50), GetRandomValue(50, screenHeight - 50)},
+            .position = (Vector2){GetRandomValue(-initialRange, initialRange), GetRandomValue(-initialRange, initialRange)},
             .velocity = (Vector2){
                 GetRandomValue((int)config->minParticleSpeed, (int)config->maxParticleSpeed) / 50.0f, // x
                 GetRandomValue((int)config->minParticleSpeed, (int)config->maxParticleSpeed) / 50.0f  // y
@@ -122,6 +155,13 @@ void InitRandomParticles(const SimulationConfig *config, Particles *particles, i
             .isFragment = false,
             .isVirtual = false,
         };
+
+        // Avoid zero velocity
+        if (p.velocity.x == 0)
+            p.velocity.x += 1.0f;
+        if (p.velocity.y == 0)
+            p.velocity.y += 1.0f;
+
         // Randomize direction
         p.velocity.x *= xDirection;
         p.velocity.y *= yDirection;
@@ -235,21 +275,19 @@ void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles
         float mass = GetRandomValue(config->minParticleMass, config->maxParticleMass);
         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
 
-        // Posición aleatoria alrededor del agujero negro, fuera del horizonte de eventos
         float angle = GetRandomValue(0, 360) * DEG2RAD;
-        float minRadius = config->blackHoleRadius + 10.0f; // Evitar superposición inicial
-        float maxRadius = screenWidth / 2.0f;              // Ajusta según el tamaño de la simulación
+        float minRadius = config->blackHoleRadius + 10.0f; 
+        float maxRadius = screenWidth / 2.0f;              
         float radius = GetRandomValue((int)minRadius, (int)maxRadius);
         Vector2 position = (Vector2){
             config->blackHoleCenter.x + radius * cosf(angle),
             config->blackHoleCenter.y + radius * sinf(angle)};
 
-        // Velocidad dirigida hacia el agujero negro con una magnitud proporcional a la distancia
-        float speed = config->blackHoleMass / (radius * radius + 1.0f); // Ajusta la fórmula según necesidad
-        Vector2 direction = PSVector2Subtract(config->blackHoleCenter, position);
-        float distance = PSVector2Length(direction);
-        Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
-        Vector2 velocity = PSVector2Scale(dirNormalized, speed);
+        float speed = config->blackHoleMass / (radius * radius + 1.0f);
+        Vector2 direction = Vector2Subtract(config->blackHoleCenter, position);
+        float distance = Vector2Length(direction);
+        Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
+        Vector2 velocity = Vector2Scale(dirNormalized, speed);
 
         Particle p = (Particle){
             .id = globalParticleID++,
@@ -264,7 +302,6 @@ void InitBlackHoleParticles(const SimulationConfig *config, Particles *particles
             .isVirtual = false,
         };
 
-        // Inicializar el rastro
         int maxTrailLength = sizeof(p.trail) / sizeof(p.trail[0]);
         for (int j = 0; j < (int)config->trailLength && j < maxTrailLength; j++)
         {
@@ -282,7 +319,7 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
     switch (config->initialPattern)
     {
     case PATTERN_RANDOM:
-        InitRandomParticles(config, particles, screenWidth, screenHeight);
+        InitRandomParticles(config, particles);
         break;
 
     case PATTERN_VORTEX:
@@ -299,7 +336,7 @@ void InitParticles(const SimulationConfig *config, Particles *particles, int scr
 
     default:
         TraceLog(LOG_WARNING, "Pattern not recognized, using random pattern");
-        InitRandomParticles(config, particles, screenWidth, screenHeight);
+        InitRandomParticles(config, particles);
         break;
     }
 }
@@ -405,62 +442,53 @@ void ResolveCollision(Particle *p1, Particle *p2)
     p2->velocity.y += impulse * normal.y;
 }
 
-void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight)
+void AssignParticlesToCells(HashTable *grid, Particles *particles, float cellSize)
 {
-    grid = (Cell **)malloc(gridWidth * sizeof(Cell *));
-    if (!grid)
-    {
-        TraceLog(LOG_ERROR, "Error al asignar memoria para grid");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int x = 0; x < gridWidth; x++)
-    {
-        grid[x] = (Cell *)malloc(gridHeight * sizeof(Cell));
-        if (!grid[x])
-        {
-            TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d]", x);
-            exit(EXIT_FAILURE);
-        }
-
-        for (int y = 0; y < gridHeight; y++)
-        {
-            grid[x][y].items = (Particle **)malloc(config->initialCapacity * sizeof(Particle *));
-            if (!grid[x][y].items)
-            {
-                TraceLog(LOG_ERROR, "Error al asignar memoria para grid[%d][%d].items", x, y);
-                exit(EXIT_FAILURE);
-            }
-            grid[x][y].count = 0;
-            grid[x][y].capacity = config->initialCapacity;
-        }
-    }
-}
-
-void AssignParticlesToCells(Particles *particles, int gridWidth, int gridHeight)
-{
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
-        {
-            grid[x][y].count = 0;
-        }
-    }
+    ClearHashTable(grid);
 
     for (int i = 0; i < particles->count; i++)
     {
         Particle *p = &particles->items[i];
-        int cellX = p->position.x / CELL_SIZE;
-        int cellY = p->position.y / CELL_SIZE;
+        int cellX = floor(p->position.x / cellSize);
+        int cellY = floor(p->position.y / cellSize);
+        GridCell *cell = GetOrCreateGridCell(grid, cellX, cellY);
+        ParticleNode *newNode = malloc(sizeof(ParticleNode));
+        newNode->particle = p;
+        newNode->next = cell->particles;
+        cell->particles = newNode;
+    }
+}
 
-        if (cellX >= 0 && cellX < gridWidth && cellY >= 0 && cellY < gridHeight)
+void RenderParticles(HashTable *grid, Camera2D camera, float cellSize)
+{
+    Vector2 topLeft = GetScreenToWorld2D((Vector2){0, 0}, camera);
+    Vector2 bottomRight = GetScreenToWorld2D((Vector2){GetScreenWidth(), GetScreenHeight()}, camera);
+    
+    int minCellX = floor(topLeft.x / cellSize);
+    int maxCellX = floor(bottomRight.x / cellSize);
+    int minCellY = floor(topLeft.y / cellSize);
+    int maxCellY = floor(bottomRight.y / cellSize);
+    
+    for (int cellX = minCellX; cellX <= maxCellX; cellX++)
+    {
+        for (int cellY = minCellY; cellY <= maxCellY; cellY++)
         {
-            ARRAY_APPEND_PTR(&grid[cellX][cellY], p);
+            GridCell *cell = GetGridCell(grid, cellX, cellY);
+            if (cell != NULL && cell->particles != NULL)
+            {
+                ParticleNode *node = cell->particles;
+                while (node != NULL)
+                {
+                    Particle *p = node->particle;
+                    DrawCircleV(p->position, p->size, p->color);
+                    node = node->next;
+                }
+            }
         }
     }
 }
 
-void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
+void UpdateSimulation(const SimulationConfig *config, Particles *particles, HashTable *grid, int screenWidth, int screenHeight)
 {
     Particles newParticles = {
         .items = (Particle *)malloc(config->maxParticles * sizeof(Particle)),
@@ -553,22 +581,23 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
 
     free(newParticles.items);
 
-    AssignParticlesToCells(particles, gridWidth, gridHeight);
+    AssignParticlesToCells(grid, particles, CELL_SIZE);
 
     // Process collisions and forces
     for (int i = 0; i < particles->count; i++)
     {
         Particle *p = &particles->items[i];
 
-        if (config->friction != 1) {
-            p->velocity = PSVector2Scale(p->velocity, config->friction);
+        if (config->friction != 1)
+        {
+            p->velocity = Vector2Scale(p->velocity, config->friction);
         }
 
-        // Screen limits control
-        if (p->position.y <= 0 || p->position.y >= screenHeight)
-            p->velocity.y *= -1;
-        if (p->position.x <= 0 || p->position.x >= screenWidth)
-            p->velocity.x *= -1;
+        // // Screen limits control
+        // if (p->position.y <= 0 || p->position.y >= screenHeight)
+        //     p->velocity.y *= -1;
+        // if (p->position.x <= 0 || p->position.x >= screenWidth)
+        //     p->velocity.x *= -1;
 
         // Gravity
         switch (config->gravityType)
@@ -577,7 +606,7 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
             break;
         case GRAVITY_CENTER:
         {
-            Vector2 center = {screenWidth / 2.0f, screenWidth / 2.0f};
+            Vector2 center = {screenHeight / 2.0f, screenWidth / 2.0f};
             Vector2 dir = {center.x - p->position.x, center.y - p->position.y};
             float distance = sqrtf(dir.x * dir.x + dir.y * dir.y);
             if (distance != 0)
@@ -616,17 +645,17 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
 
             if (distance > 0)
             {
-                Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
+                Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
 
                 // Tangent force
                 Vector2 tangential = (Vector2){dirNormalized.y, -dirNormalized.x};
 
                 Vector2 tangentialForce = (Vector2){tangential.x * config->vortexStrength / (distance + 1.0f), tangential.y * config->vortexStrength / (distance + 1.0f)};
-                p->velocity = PSVector2Add(p->velocity, tangentialForce);
+                p->velocity = Vector2Add(p->velocity, tangentialForce);
 
                 // Radial force
                 Vector2 radialForce = (Vector2){dirNormalized.x * config->radialStrength / (distance + 1.0f), dirNormalized.y * config->radialStrength / (distance + 1.0f)};
-                p->velocity = PSVector2Add(p->velocity, radialForce);
+                p->velocity = Vector2Add(p->velocity, radialForce);
             }
         }
         break;
@@ -634,16 +663,16 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
             break;
         case PATTERN_BLACKHOLE:
         {
-            Vector2 direction = PSVector2Subtract(config->blackHoleCenter, p->position);
-            float distance = PSVector2Length(direction);
+            Vector2 direction = Vector2Subtract(config->blackHoleCenter, p->position);
+            float distance = Vector2Length(direction);
 
             if (distance > 0)
             {
-                Vector2 dirNormalized = PSVector2Scale(direction, 1.0f / distance);
+                Vector2 dirNormalized = Vector2Scale(direction, 1.0f / distance);
 
                 float gravitationalForce = (config->blackHoleMass) / (distance * distance + 1.0f);
-                Vector2 gravityForce = PSVector2Scale(dirNormalized, gravitationalForce);
-                p->velocity = PSVector2Add(p->velocity, PSVector2Scale(gravityForce, GetFrameTime()));
+                Vector2 gravityForce = Vector2Scale(dirNormalized, gravitationalForce);
+                p->velocity = Vector2Add(p->velocity, Vector2Scale(gravityForce, GetFrameTime()));
 
                 // Particle enters event horizon
                 if (distance <= config->blackHoleRadius)
@@ -660,10 +689,10 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
         }
 
         // Computes the current cell of the particle
-        int cellX = p->position.x / CELL_SIZE;
-        int cellY = p->position.y / CELL_SIZE;
+        int cellX = floor(p->position.x / CELL_SIZE);
+        int cellY = floor(p->position.y / CELL_SIZE);
 
-        // Iterate over the adjacent cells
+        // Iterate over adjacent cells (including the current cell)
         for (int offsetX = -1; offsetX <= 1; offsetX++)
         {
             for (int offsetY = -1; offsetY <= 1; offsetY++)
@@ -671,16 +700,21 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
                 int neighborX = cellX + offsetX;
                 int neighborY = cellY + offsetY;
 
-                if (neighborX >= 0 && neighborX < gridWidth && neighborY >= 0 && neighborY < gridHeight)
-                {
-                    Cell *cell = &grid[neighborX][neighborY];
+                // Get neighbor cell without creating it if it doesn't exist
+                GridCell *neighborCell = GetGridCell(grid, neighborX, neighborY);
 
-                    for (int j = 0; j < cell->count; j++)
+                if (neighborCell != NULL)
+                {
+                    ParticleNode *node = neighborCell->particles;
+                    while (node != NULL)
                     {
-                        Particle *other = cell->items[j];
+                        Particle *other = node->particle;
 
                         if (p == other)
+                        {
+                            node = node->next;
                             continue;
+                        }
 
                         if (p->id < other->id)
                         {
@@ -724,20 +758,10 @@ void Simulate(const SimulationConfig *config, Particles *particles, int screenWi
                                 }
                             }
                         }
+                        node = node->next;
                     }
                 }
             }
-        }
-        DrawCircleV(p->position, p->size, p->color);
-        for (int t = 0; t < (int)(config->trailLength) - 1; t++)
-        {
-            int index = (p->trailIndex + t) % (int)(config->trailLength);
-            int nextIndex = (index + 1) % (int)(config->trailLength);
-            DrawLineEx(
-                p->trail[index],
-                p->trail[nextIndex],
-                2.0f,
-                Fade(p->color, (float)t / (int)(config->trailLength)));
         }
     }
 }
@@ -772,48 +796,4 @@ void HandleInput(const SimulationConfig *config, Particles *particles, int scree
             ARRAY_APPEND(particles, newParticle);
         }
     }
-}
-
-void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight)
-{
-    BeginTextureMode(*target);
-    ClearBackground(BLACK);
-    Simulate(config, particles, screenWidth, screenHeight, gridWidth, gridHeight);
-    EndTextureMode();
-}
-
-void CleanupSimulation(Particles *particles, int gridWidth, int gridHeight)
-{
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
-        {
-            if (grid[x][y].items != NULL)
-            {
-                free(grid[x][y].items);
-                grid[x][y].items = NULL;
-            }
-        }
-    }
-    if (particles->items != NULL)
-    {
-        free(particles->items);
-        particles->items = NULL;
-    }
-}
-
-void FreeGrid(int gridWidth, int gridHeight)
-{
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
-        {
-            if (grid[x][y].items != NULL)
-                free(grid[x][y].items);
-        }
-        if (grid[x] != NULL)
-            free(grid[x]);
-    }
-    if (grid != NULL)
-        free(grid);
 }

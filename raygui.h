@@ -328,6 +328,12 @@
 *
 **********************************************************************************************/
 
+// TEMPORAL: Disable unused warnings
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+
 #ifndef RAYGUI_H
 #define RAYGUI_H
 

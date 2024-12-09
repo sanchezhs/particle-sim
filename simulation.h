@@ -3,14 +3,12 @@
 
 #include <stdbool.h>
 #ifdef __cplusplus
-extern "C"
-{
-#endif
-
-// #include "raylib.h"
-
-#ifdef __cplusplus
-}
+    extern "C"
+    {
+        #endif
+        #include "raylib.h"
+        #ifdef __cplusplus
+    }
 #endif
 
 // TODO: Move these to a settings file
@@ -54,6 +52,7 @@ extern "C"
     } while (0)
 
 #define ARRAY_LEN(array) (sizeof(array) / sizeof((array)[0]))
+#define UNUSED(x) (void)(x)
 
 // Enumeration for gravity types
 typedef enum
@@ -151,21 +150,42 @@ typedef struct Particles
     int capacity;
 } Particles;
 
-typedef struct Cell
-{
-    Particle **items;
-    int count;
-    int capacity;
-} Cell;
+typedef struct ParticleNode {
+    Particle *particle;
+    struct ParticleNode *next;
+} ParticleNode;
 
-void InitGrid(const SimulationConfig *config, int gridWidth, int gridHeight);
+typedef struct GridCell {
+    int cellX;
+    int cellY;
+    ParticleNode *particles;
+    struct GridCell *next;
+} GridCell;
+
+#define HASH_TABLE_SIZE 10007
+
+typedef struct {
+    GridCell *buckets[HASH_TABLE_SIZE];
+} HashTable;
+
+// Spatial partitioning
+HashTable *InitHashTable(void);
+void AssignParticlesToCells(HashTable *table, Particles *particles, float cellSize);
+void ClearHashTable(HashTable *table);
+void FreeHashTable(HashTable *table);
+GridCell *GetOrCreateGridCell(HashTable *table, int cellX, int cellY);
+GridCell *GetGridCell(HashTable *table, int cellX, int cellY);
+
+// Particles
 void InitParticles(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
-void Simulate(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
-void UpdateSimulation(const SimulationConfig *config, Particles *particles, RenderTexture2D *target, int screenWidth, int screenHeight, int gridWidth, int gridHeight);
-void CleanupSimulation(Particles *particles, int gridWidth, int gridHeight);
-void ResetSimulation(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
-void FreeGrid(int gridWidth, int gridHeight);
+void RenderParticles(HashTable *grid, Camera2D camera, float cellSize);
 void GenerateVirtualParticles(const SimulationConfig *config, Particles *particles, float delta, int screenWidth, int screenHeight);
+
+// Simulation
+void UpdateSimulation(const SimulationConfig *config, Particles *particles, HashTable *grid, int screenWidth, int screenHeight);
+void ResetSimulation(const SimulationConfig *config, Particles *particles, HashTable *grid, int screenWidth, int screenHeight);
+
+// Handlers
 void HandleInput(const SimulationConfig *config, Particles *particles, int screenWidth, int screenHeight);
 
 #endif // SIMULATION_H
