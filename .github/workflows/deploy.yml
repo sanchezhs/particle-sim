@@ -22,7 +22,7 @@ jobs:
         env:
           TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
-          git checkout -B gh-pages
+          git checkout gh-pages
           cp simulation.html index.html
           git add index.html simulation.js simulation.data simulation.wasm
           git commit -m "Update files from main"
