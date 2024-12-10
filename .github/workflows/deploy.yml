@@ -24,13 +24,9 @@ jobs:
         run: |
           git checkout -B gh-pages
 
-      - name: Rename simulation.html to index.html
-        run: |
-          cp simulation.html index.html
-
       - name: Clean up unneeded files
         run: |
-          ls | grep -v -e 'index.html' -e 'simulation.js' -e 'simulation.data' -e 'simulation.wasm' -e 'favicon.svg' | xargs rm -rf
+          ls | grep -v -e build -e 'favicon.svg' | xargs rm -rf
 
       - name: Commit and push to gh-pages
         env:

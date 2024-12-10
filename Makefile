@@ -3,14 +3,15 @@ PLATFORM ?= LINUX
 CC = gcc
 EMCC = emcc
 
-SOURCES = main.c gui.c simulation.c cJSON.c
+SOURCES = src/main.c src/gui.c src/simulation.c src/cJSON.c
+BUILD_DIR = build
 
 ifeq ($(PLATFORM), PLATFORM_WEB)
     BUILD_WEB_ASYNCIFY    ?= FALSE
     BUILD_WEB_HEAP_SIZE   ?= 128MB
     BUILD_WEB_STACK_SIZE  ?= 1MB
     BUILD_WEB_ASYNCIFY_STACK_SIZE ?= 1048576
-    BUILD_WEB_SHELL ?= minshell.html
+    BUILD_WEB_SHELL ?= src/minshell.html
 
     CC = $(EMCC)
     CFLAGS = -Wall -Wextra -pedantic -std=c99 -g \
@@ -32,26 +33,29 @@ ifeq ($(PLATFORM), PLATFORM_WEB)
               -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
               -s EXPORTED_FUNCTIONS=_main,_apply_config
               
-    TARGET = simulation.html
+    TARGET = $(BUILD_DIR)/index.html
 
 else ifeq ($(PLATFORM), LINUX)
     CFLAGS = -Wall -Wextra -pedantic -std=c99 -ggdb
     LDFLAGS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-    TARGET = simulation
+    TARGET = $(BUILD_DIR)/simulation
 else ifeq ($(PLATFORM), WINDOWS)
     CFLAGS = -Wall -Wextra -pedantic -std=c99 -ggdb
     LDFLAGS = -lraylib -lgdi32 -lopengl32 -lm
-    TARGET = simulation.exe
+    TARGET = $(BUILD_DIR)/simulation.exe
 else
     $(error Unknown PLATFORM=$(PLATFORM))
 endif
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: $(BUILD_DIR) $(TARGET)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
 $(TARGET): $(SOURCES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
 
 clean:
-	rm -f simulation.html simulation simulation.exe *.wasm *.js
+	rm -rf $(BUILD_DIR)

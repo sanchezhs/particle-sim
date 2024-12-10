@@ -5,7 +5,7 @@
 #endif
 
 #include "raygui.h"
-#include "external/raylib/src/raymath.h"
+#include "../external/raylib/src/raymath.h"
 #include "simulation.h"
 #include "cJSON.h"
 #include "gui.h"

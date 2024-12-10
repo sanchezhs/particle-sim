@@ -39,7 +39,7 @@ OptionsFormat.md
 *.bin
 
 # Other build directories
-/build/
+# /build/
 /dist/
 /bin/
 /obj/

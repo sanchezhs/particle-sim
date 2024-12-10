@@ -58,7 +58,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpwc_by1ng.js
+// include: /tmp/tmpocht7lxa.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -77,8 +77,8 @@ if (ENVIRONMENT_IS_NODE) {
         // web worker
         PACKAGE_PATH = encodeURIComponent(location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/');
       }
-      var PACKAGE_NAME = 'simulation.data';
-      var REMOTE_PACKAGE_BASE = 'simulation.data';
+      var PACKAGE_NAME = 'build/index.data';
+      var REMOTE_PACKAGE_BASE = 'index.data';
       var REMOTE_PACKAGE_NAME = Module['locateFile'] ? Module['locateFile'](REMOTE_PACKAGE_BASE, '') : REMOTE_PACKAGE_BASE;
 var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
@@ -212,10 +212,10 @@ Module['FS_createPath']("/", "resources", true, true);
           var files = metadata['files'];
           for (var i = 0; i < files.length; ++i) {
             DataRequest.prototype.requests[files[i].filename].onload();
-          }          Module['removeRunDependency']('datafile_simulation.data');
+          }          Module['removeRunDependency']('datafile_build/index.data');
 
       };
-      Module['addRunDependency']('datafile_simulation.data');
+      Module['addRunDependency']('datafile_build/index.data');
 
       Module['preloadResults'] ??= {};
 
@@ -239,21 +239,21 @@ Module['FS_createPath']("/", "resources", true, true);
 
   })();
 
-// end include: /tmp/tmpwc_by1ng.js
-// include: /tmp/tmpa5a2l3ul.js
+// end include: /tmp/tmpocht7lxa.js
+// include: /tmp/tmprt0wz0tl.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpa5a2l3ul.js
-// include: /tmp/tmpv4dqxaki.js
+  // end include: /tmp/tmprt0wz0tl.js
+// include: /tmp/tmphq_dk8_g.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpv4dqxaki.js
+  // end include: /tmp/tmphq_dk8_g.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -848,7 +848,7 @@ function createExportWrapper(name, nargs) {
 // include: runtime_exceptions.js
 // end include: runtime_exceptions.js
 function findWasmBinary() {
-    var f = 'simulation.wasm';
+    var f = 'index.wasm';
     if (!isDataURI(f)) {
       return locateFile(f);
     }
