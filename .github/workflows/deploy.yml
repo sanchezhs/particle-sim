@@ -23,7 +23,13 @@ jobs:
           TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           git checkout -B gh-pages
+          
+          git rm -rf .
+
           cp simulation.html index.html
+          cp simulation.js simulation.data simulation.wasm .
+
           git add index.html simulation.js simulation.data simulation.wasm
+
           git commit -m "Update files from main"
           git push https://x-access-token:${TOKEN}@github.com/sanchezhs/particle-simulation.git gh-pages --force
