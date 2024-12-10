@@ -10,27 +10,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v3
+        with:
+          ref: main
 
-      - name: Setup git
+      - name: Setup git config
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-
-      - name: Copy files and deploy to gh-pages
-        env:
-          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      
+      - name: Create and switch to gh-pages branch
         run: |
           git checkout -B gh-pages
 
-          git checkout main -- simulation.html simulation.js simulation.data simulation.wasm
+      - name: Rename simulation.html to index.html
+        run: |
+          cp simulation.html index.html
 
-          mv simulation.html index.html
+      - name: Clean up unneeded files
+        run: |
+          # Si es necesario, eliminar todo excepto los archivos que queremos
+          ls | grep -v -e 'index.html' -e 'simulation.js' -e 'simulation.data' -e 'simulation.wasm' | xargs rm -rf
 
-          git rm -rf .
-
+      - name: Commit and push to gh-pages
+        env:
+          TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
           git add index.html simulation.js simulation.data simulation.wasm
-
           git commit -m "Update files from main"
           git push https://x-access-token:${TOKEN}@github.com/sanchezhs/particle-simulation.git gh-pages --force
