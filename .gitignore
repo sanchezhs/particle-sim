@@ -22,9 +22,6 @@ simulation
 OptionsFormat.md
 
 # Emscripten build artifacts
-*.js
-*.wasm
-*.data
 *.mem
 *.bc
 
