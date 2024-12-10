@@ -26,7 +26,11 @@ jobs:
 
       - name: Clean up unneeded files
         run: |
-          ls | grep -v -e build -e 'favicon.svg' | xargs rm -rf
+          ls | grep -v -e 'build' -e 'favicon.svg' | xargs rm -rf
+
+      - name: Copy files from build folder
+        run: |
+          cp -r build/* .
 
       - name: Commit and push to gh-pages
         env:
