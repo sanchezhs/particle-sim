@@ -30,8 +30,7 @@ jobs:
 
       - name: Clean up unneeded files
         run: |
-          # Si es necesario, eliminar todo excepto los archivos que queremos
-          ls | grep -v -e 'index.html' -e 'simulation.js' -e 'simulation.data' -e 'simulation.wasm' | xargs rm -rf
+          ls | grep -v -e 'index.html' -e 'simulation.js' -e 'simulation.data' -e 'simulation.wasm' -e 'favicon.svg' | xargs rm -rf
 
       - name: Commit and push to gh-pages
         env:
