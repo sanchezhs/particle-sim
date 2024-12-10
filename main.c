@@ -48,6 +48,7 @@ Rectangle resumeBtnRect;
 Rectangle resetBtnRect;
 Rectangle settingsBtnRect;
 
+// Simulation parameters
 SimulationConfig config;
 Particles particles;
 GeneralTabParameters gtp;
