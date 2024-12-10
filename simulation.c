@@ -139,11 +139,10 @@ void InitRandomParticles(const SimulationConfig *config, Particles *particles)
         float charge = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
         int xDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
         int yDirection = (GetRandomValue(0, 1) == 0) ? -1 : 1;
-
         Particle p = (Particle){
             .id = globalParticleID++,
             .mass = mass,
-            .size = cbrtf(mass),
+            .size = sqrt(mass),
             .charge = charge,
             .position = (Vector2){GetRandomValue(-initialRange, initialRange), GetRandomValue(-initialRange, initialRange)},
             .velocity = (Vector2){

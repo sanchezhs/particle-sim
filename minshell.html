@@ -259,14 +259,14 @@
             margin-right: 5px;
         }
 
-        #modal {
+        #modal, #modalHelp {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 3;
             display: none;
-            background-color: white;
+            background-color: #121212;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             padding: 20px;
@@ -274,27 +274,29 @@
             width: 300px;
         }
 
-        #modal h2 {
+        #modal h2, #modalHelp h2 {
             margin: 0;
             margin-bottom: 10px;
+            color: white;
         }
 
-        #modal p {
+        #modal p, #modalHelp p {
             margin: 0;
             margin-bottom: 20px;
+            color: white;
         }
 
-        #modal button {
+        #modal button, #modalHelp button {
             padding: 10px 20px;
-            background-color: #007BFF;
+            background-color: #1a538f;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
 
-        #modal button:hover {
-            background-color: #0056b3;
+        #modal button:hover, #modalHelp button:hover {
+            background-color: #0d3f75;
         }
 
         #modalOverlay {
@@ -313,10 +315,21 @@
 <body>
     <div id="modalOverlay"></div>
 
+    <!-- Config Modal -->
     <div id="modal">
         <h2>Configuration Applied</h2>
         <p>Reset the simulation to see the changes.</p>
         <button id="closeModal">Close</button>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="modalHelp">
+        <h2>Help</h2>
+        <p>WASD to move around</p>
+        <p>Q/E to zoom out/in</p>
+        <p>Left click to create particles</p>
+        <p>Right click to move around</p>
+        <button id="closeModalHelp">Close</button>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -326,6 +339,7 @@
             <button id="btnContinue" class="btn">Continue</button>
             <button id="btnReset" class="btn">Reset</button>
             <button id="btnSettings" class="btn">Settings</button>
+            <button id="btnHelp" class="btn">Help</button>
         </div>
         <div id="tabContainer" class="tab-container">
             <div class="tabs">
@@ -370,10 +384,6 @@
                         <option value="vortex">Vortex</option>
                         <option value="group">Group</option>
                     </select>
-                </div>
-                <div class="control-group checkbox-group">
-                    <input type="checkbox" id="patternsDropDownOpen">
-                    <label for="patternsDropDownOpen">Drop Down Open</label>
                 </div>
 
                 <!-- Vortex Pattern Controls -->
@@ -495,10 +505,6 @@
                     <input type="checkbox" id="electricForce">
                     <label for="electricForce">Electric Force</label>
                 </div>
-                <div class="control-group checkbox-group">
-                    <input type="checkbox" id="physicsDropDownOpen">
-                    <label for="physicsDropDownOpen">Drop Down Open</label>
-                </div>
             </div>
 
             <div id="virtualParticles" class="tab-content">
@@ -539,7 +545,6 @@
 
             // Patterns
             initialPattern: 'random',
-            dropDownOpen: false,
             vortexCenter: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
             vortexStrength: 5.0,
             radialStrength: 50.0,
@@ -580,7 +585,6 @@
             maxForce: 10.0,
             gravityType: 'none',
             electricForce: false,
-            physicsDropDownOpen: false
         };
 
         function initializeForms() {
@@ -593,7 +597,6 @@
 
             // Patterns
             document.getElementById('initialPattern').value = config.initialPattern;
-            document.getElementById('patternsDropDownOpen').checked = config.dropDownOpen;
             document.getElementById('vortexCenterX').value = config.vortexCenter.x;
             document.getElementById('vortexCenterY').value = config.vortexCenter.y;
             document.getElementById('vortexStrength').value = config.vortexStrength;
@@ -633,7 +636,6 @@
             document.getElementById('kElectric').value = config.kElectric;
             document.getElementById('gravityType').value = config.gravityType;
             document.getElementById('electricForce').checked = config.electricForce;
-            document.getElementById('physicsDropDownOpen').checked = config.physicsDropDownOpen;
         }
 
         // function initializeGroupCenters() {
@@ -734,6 +736,12 @@
                     modal.style.display = 'none';
                     modalOverlay.style.display = 'none';
                 });
+                document.getElementById('closeModalHelp').addEventListener('click', function () {
+                    const modalHelp = document.getElementById('modalHelp');
+                    const modalOverlay = document.getElementById('modalOverlay');
+                    modalHelp.style.display = 'none';
+                    modalOverlay.style.display = 'none';
+                });
             },
             print: function (text) {
                 console.log(text);
@@ -802,10 +810,6 @@
             // Patterns
             document.getElementById('initialPattern').addEventListener('change', function () {
                 config.initialPattern = this.value;
-            });
-
-            document.getElementById('patternsDropDownOpen').addEventListener('change', function () {
-                config.dropDownOpen = this.checked;
             });
 
             document.getElementById('vortexCenterX').addEventListener('input', function () {
@@ -925,8 +929,11 @@
                 config.electricForce = this.checked;
             });
 
-            document.getElementById('physicsDropDownOpen').addEventListener('change', function () {
-                config.physicsDropDownOpen = this.checked;
+            document.getElementById('btnHelp').addEventListener('click', function () {
+                var modalHelp = document.getElementById('modalHelp');
+                var modalOverlay = document.getElementById('modalOverlay');
+                modalHelp.style.display = 'block';
+                modalOverlay.style.display = 'block';
             });
         }
 
