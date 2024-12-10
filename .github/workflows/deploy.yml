@@ -36,6 +36,6 @@ jobs:
         env:
           TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
-          git add index.html simulation.js simulation.data simulation.wasm
+          git add .
           git commit -m "Update files from main"
           git push https://x-access-token:${TOKEN}@github.com/sanchezhs/particle-simulation.git gh-pages --force
