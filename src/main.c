@@ -40,8 +40,8 @@ int footerHeight = 0;
 
 int screenWidth;
 float scaleFactor;
-int baseFontSize;
-int scaledFontSize;
+int baseFontSize = 20;
+int scaledFontSize = 20;
 
 Rectangle pauseBtnRect;
 Rectangle resumeBtnRect;
@@ -118,6 +118,21 @@ EMSCRIPTEN_KEEPALIVE
 void on_settings_button_click(void)
 {
     showConfigPanel = !showConfigPanel;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void on_resize(int width, int height)
+{
+    scaleFactor = width / height;
+    scaledFontSize = (baseFontSize * scaleFactor);
+    if (scaledFontSize < 20)
+    {
+        scaledFontSize = 16;
+    }
+    else if ( scaledFontSize > 20) {
+        scaledFontSize = 20;
+    }
+    GuiSetStyle(DEFAULT, TEXT_SIZE, scaledFontSize);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -572,7 +587,7 @@ void main_loop_web(void)
 {
     float delta = GetFrameTime();
     updateCamera(delta);
-    GuiSetStyle(DEFAULT, TEXT_SIZE, (int)(8 * ((float)GetScreenWidth() / 800.0f)));
+    GuiSetStyle(DEFAULT, TEXT_SIZE, scaledFontSize);
 
     float wheelMove = GetMouseWheelMove();
     if (wheelMove != 0)
@@ -649,7 +664,6 @@ void main_loop_desktop(void)
 {
     screenWidth = GetScreenWidth();
     scaleFactor = (float)screenWidth / 800;
-    baseFontSize = 18;
     scaledFontSize = (int)(baseFontSize * scaleFactor);
 
     while (!WindowShouldClose())

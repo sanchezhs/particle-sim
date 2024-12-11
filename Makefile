@@ -31,7 +31,7 @@ ifeq ($(PLATFORM), PLATFORM_WEB)
               -s WASM=1 \
               -s MODULARIZE=1 \
               -sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
-              -s EXPORTED_FUNCTIONS=_main,_apply_config
+              -s EXPORTED_FUNCTIONS=_main,_apply_config,_on_resize
               
     TARGET = $(BUILD_DIR)/index.html
 

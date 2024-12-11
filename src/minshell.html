@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>Raylib Simulation</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="../resources/favicon.svg">
     <style>
         body,
         html {
@@ -171,27 +171,6 @@
             background: #777;
         }
 
-        @media (max-width: 600px) {
-            .tab {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-
-            .btn {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-
-            .tab-container {
-                top: 50px;
-            }
-
-            .control-group label {
-                width: 150px;
-            }
-        }
-
-
         .control-group {
             display: flex;
             align-items: center;
@@ -309,6 +288,72 @@
             z-index: 2;
             display: none;
         }
+
+        /* Extra small devices (phones, 600px and down) */
+        @media only screen and (max-width: 600px) {
+           .btn, .tab-container {
+            font-size: 10px;
+           }
+           .control-group input[type="number"] {
+                font-size: 10px;
+            }
+            .control-group.checkbox-group {
+                justify-content: center;
+            }
+           .btnContainer {
+                gap: 4px;
+            }
+        }
+        /* Small devices (portrait tablets and large phones, 600px and up) */
+        @media only screen and (min-width: 600px) {
+            .btn, .tab-container {
+                font-size: 10px;
+            }
+            .control-group input[type="number"] {
+                font-size: 10px;
+            }
+            .control-group.checkbox-group {
+                justify-content: center;
+            }
+            .btnContainer {
+                gap: 4px;
+            }
+        }
+        /* Medium devices (landscape tablets, 768px and up) */
+        @media only screen and (min-width: 768px) {
+            .btn, .tab-container {
+                font-size: 12px;
+            }
+            .control-group input[type="number"] {
+                font-size: 12px;
+            }
+            .control-group.checkbox-group {
+            justify-content: center;
+            }
+            .btnContainer {
+                gap: 6px;
+            }
+        }
+        /* Large devices (laptops/desktops, 992px and up) */
+        @media only screen and (min-width: 992px) {
+            .btn, .tab-container {
+                font-size: 14px;
+            }
+            .btnContainer {
+                gap: 8px;
+            }
+            .control-group input[type="number"] {
+                font-size: 14px;
+            }
+
+        }
+        /* Extra large devices (large laptops and desktops, 1200px and up) */
+        @media only screen and (min-width: 1200px) {
+            .btn {
+                font-size: 16px;
+            }
+        }
+
     </style>
 </head>
 
@@ -699,6 +744,12 @@
             onRuntimeInitialized: async function () {
                 const instance = await myModule;
                 const applyConfigC = instance.cwrap('apply_config', 'number', ['string']);
+
+                window.addEventListener('resize', function () {
+                    instance._on_resize(window.innerWidth, window.innerHeight);
+                    console.log('Resized', window.innerWidth, window.innerHeight);
+
+                });
 
                 document.getElementById('btnPause').addEventListener('click', function () {
                     myModule.then(function (instance) {

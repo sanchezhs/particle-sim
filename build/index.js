@@ -28,7 +28,7 @@ var readyPromise = new Promise((resolve, reject) => {
   readyPromiseResolve = resolve;
   readyPromiseReject = reject;
 });
-["_apply_config","_memory","_on_pause_button_click","_on_continue_button_click","_on_reset_button_click","_on_settings_button_click","___indirect_function_table","_main","onRuntimeInitialized"].forEach((prop) => {
+["_apply_config","_on_resize","_memory","_on_pause_button_click","_on_continue_button_click","_on_reset_button_click","_on_settings_button_click","___indirect_function_table","_main","onRuntimeInitialized"].forEach((prop) => {
   if (!Object.getOwnPropertyDescriptor(readyPromise, prop)) {
     Object.defineProperty(readyPromise, prop, {
       get: () => abort('You are getting ' + prop + ' on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js'),
@@ -58,7 +58,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpocht7lxa.js
+// include: /tmp/tmp9kzqbmc0.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -235,25 +235,25 @@ Module['FS_createPath']("/", "resources", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/resources/UbuntuMonoNerdFont-Regular.ttf", "start": 0, "end": 2346160}], "remote_package_size": 2346160});
+    loadPackage({"files": [{"filename": "/resources/UbuntuMonoNerdFont-Regular.ttf", "start": 0, "end": 2346160}, {"filename": "/resources/favicon.svg", "start": 2346160, "end": 2346725}], "remote_package_size": 2346725});
 
   })();
 
-// end include: /tmp/tmpocht7lxa.js
-// include: /tmp/tmprt0wz0tl.js
+// end include: /tmp/tmp9kzqbmc0.js
+// include: /tmp/tmpqdjs9_pe.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['$ww'] || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmprt0wz0tl.js
-// include: /tmp/tmphq_dk8_g.js
+  // end include: /tmp/tmpqdjs9_pe.js
+// include: /tmp/tmpg32rhvft.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmphq_dk8_g.js
+  // end include: /tmp/tmpg32rhvft.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -11471,6 +11471,7 @@ var _on_pause_button_click = Module['_on_pause_button_click'] = createExportWrap
 var _on_continue_button_click = Module['_on_continue_button_click'] = createExportWrapper('on_continue_button_click', 0);
 var _on_reset_button_click = Module['_on_reset_button_click'] = createExportWrapper('on_reset_button_click', 0);
 var _on_settings_button_click = Module['_on_settings_button_click'] = createExportWrapper('on_settings_button_click', 0);
+var _on_resize = Module['_on_resize'] = createExportWrapper('on_resize', 2);
 var _apply_config = Module['_apply_config'] = createExportWrapper('apply_config', 1);
 var _main = Module['_main'] = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
